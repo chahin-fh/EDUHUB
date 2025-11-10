@@ -1,0 +1,146 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("MONGODB_URI")
+}
+
+model User {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  email           String       @unique
+  password        String
+  firstName       String
+  lastName        String
+  role            Role         @default(STUDENT)
+  bio             String?
+  profileImage    String?
+  courses         Course[]     @relation("InstructorCourses")
+  enrollments     Enrollment[]
+  sentMessages    Message[]    @relation("SentMessages")
+  receivedMessages Message[]    @relation("ReceivedMessages")
+  progress        Progress[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  @@map("users")
+}
+
+model Course {
+  id                 String                @id @default(auto()) @map("_id") @db.ObjectId
+  title              String
+  description        String
+  subject           String
+  level             String
+  price             Float
+  instructor        User                  @relation("InstructorCourses", fields: [instructorId], references: [id])
+  instructorId      String                @db.ObjectId
+  enrollments       Enrollment[]
+  lessons           Lesson[]
+  progress          Progress[]
+  courseCategories  CourseCategory[]
+  thumbnail         String?
+  isPublished       Boolean               @default(false)
+  rating            Float?                @default(0)
+  totalStudents     Int                   @default(0)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  
+  @@map("courses")
+}
+
+// Table de jointure pour la relation many-to-many entre Course et Category
+model CourseCategory {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  course      Course    @relation(fields: [courseId], references: [id])
+  courseId    String    @db.ObjectId
+  category    Category  @relation(fields: [categoryId], references: [id])
+  categoryId  String    @db.ObjectId
+  assignedAt  DateTime  @default(now())
+
+  @@unique([courseId, categoryId])
+  @@map("course_categories")
+}
+
+model Enrollment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @db.ObjectId
+  course    Course   @relation(fields: [courseId], references: [id])
+  courseId  String   @db.ObjectId
+  status    String   @default("PENDING")
+  progress  Int      @default(0)
+  rating    Int?
+  review    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model Message {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  content     String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  senderId    String   @db.ObjectId
+  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  recipientId String   @db.ObjectId
+  read        Boolean  @default(false)
+  courseId    String?  @db.ObjectId
+  createdAt   DateTime @default(now())
+  
+  @@map("messages")
+}
+
+model Lesson {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  videoUrl    String
+  duration    Int       // Durée en secondes
+  course      Course    @relation(fields: [courseId], references: [id])
+  courseId    String    @db.ObjectId
+  order       Int
+  isPublished Boolean   @default(false)
+  progress    Progress[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@map("lessons")
+}
+
+model Progress {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @db.ObjectId
+  lesson    Lesson   @relation(fields: [lessonId], references: [id])
+  lessonId  String   @db.ObjectId
+  course    Course   @relation(fields: [courseId], references: [id])
+  courseId  String   @db.ObjectId
+  completed Boolean  @default(false)
+  progress  Int      @default(0) // Pourcentage de progression
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, lessonId])
+  @@map("progress")
+}
+
+model Category {
+  id                String            @id @default(auto()) @map("_id") @db.ObjectId
+  name              String            @unique
+  description       String?
+  courseCategories  CourseCategory[]
+  
+  @@map("categories")
+}
+
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
