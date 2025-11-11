@@ -23,7 +23,7 @@ export default function Navigation() {
   const navLinks = [
     { name: 'Accueil', href: '/', icon: Home },
     { name: 'Cours', href: '/cours', icon: BookOpen },
-    { name: 'Moniteurs', href: '/moniteurs', icon: Users },
+    { name: 'Trouver un Mentor', href: '/mentors', icon: Users },
     { name: 'Contact', href: '/contact', icon: MessageSquare },
   ];
 
