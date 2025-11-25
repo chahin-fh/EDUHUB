@@ -37,7 +37,7 @@ export default function AuthSection() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       // TODO: Implémenter la logique d'authentification
       console.log('Form submitted:', formData);
@@ -54,8 +54,8 @@ export default function AuthSection() {
     <section id="auth" className="py-16 bg-muted/50">
       <div className="container mx-auto px-4">
         <div className="max-w-md mx-auto">
-          <Tabs 
-            value={activeTab} 
+          <Tabs
+            value={activeTab}
             onValueChange={setActiveTab}
             className="w-full"
           >
@@ -117,7 +117,7 @@ export default function AuthSection() {
                 <CardHeader>
                   <CardTitle>Créez un compte</CardTitle>
                   <CardDescription>
-                    Rejoignez notre communauté d'apprentissage.
+                    Rejoignez notre communauté d&apos;apprentissage.
                   </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>

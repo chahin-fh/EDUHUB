@@ -31,18 +31,18 @@ const ContactSection = () => {
     try {
       // Simuler un envoi de formulaire
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Réinitialiser le formulaire après un envoi réussi
       setFormData({ name: '', email: '', message: '' });
-      setSubmitStatus({ 
-        type: 'success', 
-        message: 'Votre message a été envoyé avec succès ! Nous vous répondrons dès que possible.' 
+      setSubmitStatus({
+        type: 'success',
+        message: 'Votre message a été envoyé avec succès ! Nous vous répondrons dès que possible.'
       });
     } catch (error) {
-      console.error('Erreur lors de l\'envoi du formulaire:', error);
-      setSubmitStatus({ 
-        type: 'error', 
-        message: 'Une erreur est survenue lors de l\'envoi du message. Veuillez réessayer plus tard.' 
+      console.error('Erreur lors de l&apos;envoi du formulaire:', error);
+      setSubmitStatus({
+        type: 'error',
+        message: 'Une erreur est survenue lors de l&apos;envoi du message. Veuillez réessayer plus tard.'
       });
     } finally {
       setIsSubmitting(false);
@@ -55,8 +55,8 @@ const ContactSection = () => {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">Contactez-nous</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Vous avez des questions ou souhaitez en savoir plus sur nos services ? 
-            N'hésitez pas à nous envoyer un message, nous vous répondrons dans les plus brefs délais.
+            Vous avez des questions ou souhaitez en savoir plus sur nos services ?
+            N&apos;hésitez pas à nous envoyer un message, nous vous répondrons dans les plus brefs délais.
           </p>
         </div>
 
@@ -71,17 +71,16 @@ const ContactSection = () => {
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-4">
                 {submitStatus.type && (
-                  <div 
-                    className={`p-4 rounded-md ${
-                      submitStatus.type === 'success' 
-                        ? 'bg-green-50 text-green-800' 
+                  <div
+                    className={`p-4 rounded-md ${submitStatus.type === 'success'
+                        ? 'bg-green-50 text-green-800'
                         : 'bg-red-50 text-red-800'
-                    }`}
+                      }`}
                   >
                     {submitStatus.message}
                   </div>
                 )}
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label htmlFor="name" className="text-sm font-medium">
@@ -96,7 +95,7 @@ const ContactSection = () => {
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label htmlFor="email" className="text-sm font-medium">
                       Email <span className="text-red-500">*</span>
@@ -112,7 +111,7 @@ const ContactSection = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <label htmlFor="message" className="text-sm font-medium">
                     Message <span className="text-red-500">*</span>

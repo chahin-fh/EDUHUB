@@ -1,0 +1,34 @@
+
+> my-v0-project@0.1.0 build
+> next build
+
+  Γû▓ Next.js 14.2.33
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+Failed to compile.
+
+app\layout.tsx
+An error occurred in `next/font`.
+
+Error: Cannot find module '@tailwindcss/postcss'
+Require stack:
+- D:\EDUHUB\frontend\node_modules\next\dist\build\webpack\config\blocks\css\plugins.js
+- D:\EDUHUB\frontend\node_modules\next\dist\build\webpack\config\blocks\css\index.js
+- D:\EDUHUB\frontend\node_modules\next\dist\build\webpack\config\index.js
+- D:\EDUHUB\frontend\node_modules\next\dist\build\webpack-config.js
+- D:\EDUHUB\frontend\node_modules\next\dist\build\webpack-build\impl.js
+- D:\EDUHUB\frontend\node_modules\next\dist\compiled\jest-worker\processChild.js
+    at Function.<anonymous> (node:internal/modules/cjs/loader:1401:15)
+    at D:\EDUHUB\frontend\node_modules\next\dist\server\require-hook.js:55:36
+    at Function.resolve (node:internal/modules/helpers:145:19)
+    at loadPlugin (D:\EDUHUB\frontend\node_modules\next\dist\build\webpack\config\blocks\css\plugins.js:49:32)
+    at D:\EDUHUB\frontend\node_modules\next\dist\build\webpack\config\blocks\css\plugins.js:157:56
+    at Array.map (<anonymous>)
+    at getPostCssPlugins (D:\EDUHUB\frontend\node_modules\next\dist\build\webpack\config\blocks\css\plugins.js:157:47)
+    at async D:\EDUHUB\frontend\node_modules\next\dist\build\webpack\config\blocks\css\index.js:124:36
+    at async D:\EDUHUB\frontend\node_modules\next\dist\build\webpack\loaders\next-font-loader\index.js:86:33
+    at async Span.traceAsyncFn (D:\EDUHUB\frontend\node_modules\next\dist\trace\trace.js:154:20)
+
+
+> Build failed because of webpack errors

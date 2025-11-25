@@ -40,7 +40,7 @@ export default function ProfilePage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Matières enseignées</CardTitle>
-                  <CardDescription>Sélectionnez vos domaines d'expertise</CardDescription>
+                  <CardDescription>Sélectionnez vos domaines d&apos;expertise</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -95,9 +95,9 @@ export default function ProfilePage() {
                   <CardDescription>Décrivez-vous en quelques mots</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Textarea 
-                    className="min-h-[120px]" 
-                    placeholder="Je suis un enseignant passionné par les mathématiques et l'informatique..." 
+                  <Textarea
+                    className="min-h-[120px]"
+                    placeholder="Je suis un enseignant passionné par les mathématiques et l'informatique..."
                     defaultValue="Professeur de mathématiques avec plus de 10 ans d'expérience dans l'enseignement secondaire et supérieur. Spécialisé en algèbre linéaire et en analyse."
                   />
                 </CardContent>

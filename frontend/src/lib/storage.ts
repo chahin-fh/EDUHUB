@@ -1,4 +1,5 @@
-import { v2 as cloudinary } from 'cloudinary';
+// @ts-ignore
+const cloudinary = require('cloudinary').v2;
 import { Readable } from 'stream';
 import { config } from '../config';
 
@@ -49,7 +50,7 @@ export const uploadFile = async (
       uploadResult = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           uploadOptions,
-          (error, result) => {
+          (error: any, result: any) => {
             if (error) reject(error);
             else if (result) resolve(result);
             else reject(new Error('No result from Cloudinary'));
@@ -101,7 +102,7 @@ export const getFileUrl = (publicId: string, options: {
   format?: string;
 } = {}): string => {
   const transformations = [];
-  
+
   if (options.width || options.height) {
     transformations.push({
       width: options.width,
@@ -109,20 +110,20 @@ export const getFileUrl = (publicId: string, options: {
       crop: options.crop || 'fill',
     });
   }
-  
+
   if (options.quality) {
     transformations.push({
       quality: 'auto:best',
       fetch_format: 'auto',
     });
   }
-  
+
   if (options.format) {
     transformations.push({
       fetch_format: options.format,
     });
   }
-  
+
   return cloudinary.url(publicId, {
     secure: true,
     transformation: transformations,

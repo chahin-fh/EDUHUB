@@ -28,7 +28,7 @@ export default function ContactSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold mb-4">Get In Touch</h2>
-          <p className="text-lg text-muted-foreground">Have questions? We'd love to hear from you.</p>
+          <p className="text-lg text-muted-foreground">Have questions? We&apos;d love to hear from you.</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-12">

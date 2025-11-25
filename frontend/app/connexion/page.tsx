@@ -32,19 +32,28 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // Simulation d'une requête API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Vérification factice des identifiants
-      if (formData.email === 'admin@example.com' && formData.password === 'password') {
-        // Stocker le token d'authentification (dans un vrai projet, utilisez un gestionnaire d'état ou des cookies sécurisés)
-        localStorage.setItem('isAuthenticated', 'true');
-        router.push('/tableau-de-bord');
-      } else {
-        setError('Email ou mot de passe incorrect');
+      const response = await fetch('http://localhost:5000/api/auth/connexion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Email ou mot de passe incorrect');
       }
-    } catch (err) {
-      setError('Une erreur est survenue. Veuillez réessayer.');
+
+      // Stocker le token (et éventuellement les informations utilisateur)
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('user', JSON.stringify({ username: data.username, email: data.email }));
+
+      router.push('/tableau-de-bord'); // Rediriger vers le tableau de bord ou une autre page protégée
+
+    } catch (err: any) {
+      setError(err.message || 'Une erreur est survenue. Veuillez réessayer.');
       console.error('Login error:', err);
     } finally {
       setIsLoading(false);

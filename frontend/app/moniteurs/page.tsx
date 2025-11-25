@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Star, GraduationCap, MessageSquare } from 'lucide-react';
+import { Search, Star, GraduationCap, MessageSquare, Users } from 'lucide-react';
 
 const mentors = [
   {
@@ -27,7 +27,7 @@ export default function MoniteursPage() {
   const filteredMentors = mentors.filter(mentor =>
     mentor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     mentor.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    mentor.skills.some(skill => 
+    mentor.skills.some(skill =>
       skill.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
@@ -76,7 +76,7 @@ export default function MoniteursPage() {
             <CardContent>
               <div className="flex flex-wrap gap-2 mb-4">
                 {mentor.skills.map((skill, i) => (
-                  <span 
+                  <span
                     key={i}
                     className="px-2 py-1 bg-muted/50 text-xs rounded-full"
                   >
@@ -87,7 +87,7 @@ export default function MoniteursPage() {
               <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                 <div className="flex items-center gap-1">
                   <GraduationCap className="h-4 w-4" />
-                  <span>{mentor.experience} d'expérience</span>
+                  <span>{mentor.experience} d&apos;expérience</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Users className="h-4 w-4" />

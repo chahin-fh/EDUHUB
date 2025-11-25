@@ -38,7 +38,7 @@ export default function ContactPage() {
     try {
       // Simulation d'envoi de formulaire
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // Réinitialiser le formulaire
       setFormData({
         name: '',
@@ -46,7 +46,7 @@ export default function ContactPage() {
         subject: '',
         message: '',
       });
-      
+
       setSubmitStatus({
         success: true,
         message: 'Votre message a bien été envoyé ! Nous vous répondrons dans les plus brefs délais.',
@@ -81,11 +81,10 @@ export default function ContactPage() {
             </CardHeader>
             <CardContent>
               {submitStatus && (
-                <div className={`p-4 mb-6 rounded-md ${
-                  submitStatus.success 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
+                <div className={`p-4 mb-6 rounded-md ${submitStatus.success
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+                  }`}>
                   {submitStatus.message}
                 </div>
               )}
@@ -176,7 +175,7 @@ export default function ContactPage() {
             <CardHeader>
               <CardTitle>Nos coordonnées</CardTitle>
               <CardDescription>
-                N'hésitez pas à nous contacter par téléphone ou par email
+                N&apos;hésitez pas à nous contacter par téléphone ou par email
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -186,7 +185,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="font-medium">Email</h3>
-                  <p className="text-muted-foreground">contact@eduhub.com</p>
+                  <p className="text-muted-foreground">L&apos;équipe pédagogique</p>
                 </div>
               </div>
 
@@ -207,7 +206,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="font-medium">Adresse</h3>
-                  <p className="text-muted-foreground">123 Rue de l'Éducation</p>
+                  <p className="text-muted-foreground">123 Rue de l&apos;Éducation</p>
                   <p className="text-muted-foreground">75000 Paris, France</p>
                 </div>
               </div>
@@ -216,7 +215,7 @@ export default function ContactPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Heures d'ouverture</CardTitle>
+              <CardTitle>Heures d&apos;ouverture</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -233,8 +232,8 @@ export default function ContactPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    </div>
+        </div >
+      </div >
+    </div >
   );
 }

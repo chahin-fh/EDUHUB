@@ -37,7 +37,7 @@ const Navigation = () => {
   }, [pathname]);
 
   return (
-    <header 
+    <header
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
         scrolled ? 'bg-background/90 backdrop-blur-md shadow-sm' : 'bg-background/80 backdrop-blur-sm'
@@ -56,7 +56,7 @@ const Navigation = () => {
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               const Icon = link.icon;
-              
+
               return (
                 <Button
                   key={link.name}
@@ -86,15 +86,15 @@ const Navigation = () => {
             </Button>
             <Button asChild>
               <Link href="/inscription">
-                S'inscrire
+                S&apos;inscrire
               </Link>
             </Button>
           </div>
 
           {/* Bouton menu mobile */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="md:hidden"
             onClick={() => setIsOpen(!isOpen)}
             aria-label={isOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
@@ -112,7 +112,7 @@ const Navigation = () => {
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
                 const Icon = link.icon;
-                
+
                 return (
                   <Button
                     key={link.name}
@@ -131,7 +131,7 @@ const Navigation = () => {
                 );
               })}
             </nav>
-            
+
             <div className="py-2 border-t space-y-2">
               <Button variant="outline" className="w-full" asChild>
                 <Link href="/connexion" className="flex items-center justify-center">

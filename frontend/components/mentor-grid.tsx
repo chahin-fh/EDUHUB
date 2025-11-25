@@ -84,7 +84,7 @@ export default function MentorGrid({ subject, search }: MentorGridProps) {
       setVisibleIndices(indices)
     }, 100)
     return () => clearTimeout(timer)
-  }, [filteredMentors.length])
+  }, [filteredMentors])
 
   return (
     <section id="profiles" className="py-20">
@@ -98,9 +98,8 @@ export default function MentorGrid({ subject, search }: MentorGridProps) {
           {filteredMentors.map((mentor, idx) => (
             <div
               key={mentor.id}
-              className={`transition-all duration-500 ${
-                visibleIndices.includes(idx) ? "animate-fadeInUp" : "opacity-0"
-              }`}
+              className={`transition-all duration-500 ${visibleIndices.includes(idx) ? "animate-fadeInUp" : "opacity-0"
+                }`}
               style={{ animationDelay: `${idx * 100}ms` }}
             >
               <MentorCard mentor={mentor} />

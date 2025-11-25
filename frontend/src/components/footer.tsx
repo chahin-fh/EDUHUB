@@ -7,7 +7,7 @@ import { Mail, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
-  
+
   return (
     <footer className="bg-secondary/50 border-t">
       <div className="container mx-auto px-4 py-12">
@@ -16,7 +16,7 @@ const Footer = () => {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">EduHub</h3>
             <p className="text-muted-foreground text-sm">
-              Plateforme d'apprentissage en ligne offrant des cours de qualité avec des mentors expérimentés.
+              Plateforme d&apos;apprentissage en ligne offrant des cours de qualité avec des mentors expérimentés.
             </p>
             <div className="flex space-x-4">
               <Button variant="ghost" size="icon" asChild>
@@ -103,15 +103,15 @@ const Footer = () => {
               Abonnez-vous à notre newsletter pour recevoir les dernières actualités et offres spéciales.
             </p>
             <form className="flex space-x-2">
-              <Input 
-                type="email" 
-                placeholder="Votre email" 
+              <Input
+                type="email"
+                placeholder="Votre email"
                 className="flex-1"
                 required
               />
               <Button type="submit" size="sm" className="flex items-center">
                 <Mail className="h-4 w-4 mr-2" />
-                S'abonner
+                S&apos;abonner
               </Button>
             </form>
           </div>

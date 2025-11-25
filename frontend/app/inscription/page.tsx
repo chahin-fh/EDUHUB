@@ -50,38 +50,32 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      // Simulation d'une requête API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Enregistrement factice
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const userExists = users.some((user: any) => user.email === formData.email);
-      
-      if (userExists) {
-        setError('Un compte avec cet email existe déjà');
-        return;
+      const response = await fetch('http://localhost:5000/api/auth/inscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Une erreur est survenue');
       }
-      
-      // Ajouter l'utilisateur (dans un vrai projet, utilisez une API sécurisée)
-      const newUser = {
-        id: Date.now().toString(),
-        name: formData.name,
-        email: formData.email,
-        // Dans un vrai projet, ne stockez jamais les mots de passe en clair
-        password: formData.password,
-        createdAt: new Date().toISOString(),
-      };
-      
-      localStorage.setItem('users', JSON.stringify([...users, newUser]));
+
       setSuccess(true);
       
-      // Rediriger vers la page de connexion après un délai
       setTimeout(() => {
         router.push('/connexion');
       }, 2000);
       
-    } catch (err) {
-      setError('Une erreur est survenue lors de l\'inscription');
+    } catch (err: any) {
+      setError(err.message || 'Une erreur est survenue lors de l\'inscription');
       console.error('Registration error:', err);
     } finally {
       setIsLoading(false);
