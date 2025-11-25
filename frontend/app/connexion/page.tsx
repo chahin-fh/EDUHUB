@@ -53,14 +53,13 @@ export default function LoginPage() {
         throw new Error(data.message || "Email ou mot de passe incorrect");
       }
 
-<<<<<<< HEAD
       // Stocker le token (et éventuellement les informations utilisateur)
       localStorage.setItem("authToken", data.token);
       localStorage.setItem(
         "user",
         JSON.stringify({ username: data.username, email: data.email })
       );
-=======
+
       localStorage.setItem('authToken', data.token);
 
       // Fetch user data
@@ -82,7 +81,7 @@ export default function LoginPage() {
       } else {
         router.push('/dashboard');
       }
->>>>>>> 30fbff93f9fe6dd7e7bd59b2c37c0b91a77335b2
+
 
       router.push("/dashboard"); // Rediriger vers le tableau de bord ou une autre page protégée
     } catch (err: any) {
