@@ -62,7 +62,11 @@ export default function LoginPage() {
       const userData = await userRes.json();
       localStorage.setItem('user', JSON.stringify(userData));
 
-      router.push('/dashboard'); // Rediriger vers le tableau de bord ou une autre page protégée
+      if (userData.email === 'admin@gmail.com' || userData.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
 
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue. Veuillez réessayer.');
@@ -88,7 +92,7 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -102,12 +106,12 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Mot de passe</Label>
-                <Link 
-                  href="/mot-de-passe-oublie" 
+                <Link
+                  href="/mot-de-passe-oublie"
                   className="text-sm text-primary hover:underline"
                 >
                   Mot de passe oublié ?
@@ -123,7 +127,7 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
@@ -135,7 +139,7 @@ export default function LoginPage() {
               )}
             </Button>
           </CardContent>
-          
+
           <CardFooter className="flex flex-col space-y-4">
             <div className="relative w-full">
               <div className="absolute inset-0 flex items-center">
@@ -147,7 +151,7 @@ export default function LoginPage() {
                 </span>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4 w-full">
               <Button variant="outline" type="button" disabled={isLoading} onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'}>
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -165,7 +169,7 @@ export default function LoginPage() {
                 LinkedIn
               </Button>
             </div>
-            
+
             <p className="text-center text-sm text-muted-foreground">
               Pas encore de compte ?{' '}
               <Link href="/inscription" className="text-primary hover:underline">

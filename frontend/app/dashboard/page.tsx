@@ -135,7 +135,7 @@ export default function DashboardPage() {
         return "bg-gray-100";
     }
   };
-    if (loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -273,7 +273,7 @@ export default function DashboardPage() {
                 variant="ghost"
                 className="w-full mt-4 text-blue-600 hover:text-blue-700"
               >
-                Voir toute l'activité
+                Voir toute l&apos;activité
               </Button>
             </CardContent>
           </Card>

@@ -43,9 +43,9 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
     setError('');
 
@@ -69,11 +69,11 @@ export default function RegisterPage() {
       }
 
       setSuccess(true);
-      
+
       setTimeout(() => {
         router.push('/connexion');
       }, 2000);
-      
+
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue lors de l\'inscription');
       console.error('Registration error:', err);
@@ -121,7 +121,7 @@ export default function RegisterPage() {
                 {error}
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="name">Nom complet</Label>
               <Input
@@ -135,7 +135,7 @@ export default function RegisterPage() {
                 disabled={isLoading}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -149,7 +149,7 @@ export default function RegisterPage() {
                 disabled={isLoading}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe</Label>
               <Input
@@ -166,7 +166,7 @@ export default function RegisterPage() {
                 Le mot de passe doit contenir au moins 6 caractères
               </p>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
               <Input
@@ -180,7 +180,7 @@ export default function RegisterPage() {
                 minLength={6}
               />
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <input
@@ -193,14 +193,14 @@ export default function RegisterPage() {
                   htmlFor="terms"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  J'accepte les{' '}
+                  J&apos;accepte les{' '}
                   <Link href="/conditions" className="text-primary hover:underline">
-                    conditions d'utilisation
+                    conditions d&apos;utilisation
                   </Link>
                 </label>
               </div>
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
@@ -212,7 +212,7 @@ export default function RegisterPage() {
               )}
             </Button>
           </CardContent>
-          
+
           <CardFooter className="flex flex-col space-y-4">
             <p className="text-center text-sm text-muted-foreground">
               Vous avez déjà un compte ?{' '}
