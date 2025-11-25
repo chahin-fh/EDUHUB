@@ -2,7 +2,12 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const passport = require('passport');
+const session = require('express-session');
 require('dotenv').config();
+
+// Passport Config
+require('./config/passport')(passport);
 
 const app = express();
 
@@ -13,6 +18,19 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Express session
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'a-super-secret-key',
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Database connection
 const connectDB = async () => {
