@@ -53,38 +53,30 @@ export default function LoginPage() {
         throw new Error(data.message || "Email ou mot de passe incorrect");
       }
 
-<<<<<<< HEAD
-      // Stocker le token (et éventuellement les informations utilisateur)
+      // Stocker le token et récupérer les données utilisateur
       localStorage.setItem("authToken", data.token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({ username: data.username, email: data.email })
-      );
-=======
-      localStorage.setItem('authToken', data.token);
 
-      // Fetch user data
-      const userRes = await fetch('http://localhost:5000/api/auth/me', {
+      // Récupérer les données utilisateur
+      const userRes = await fetch("http://localhost:5000/api/auth/me", {
         headers: {
           Authorization: `Bearer ${data.token}`,
         },
       });
 
       if (!userRes.ok) {
-        throw new Error('Failed to fetch user data after login');
+        throw new Error("Échec de la récupération des données utilisateur");
       }
 
       const userData = await userRes.json();
-      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem("user", JSON.stringify(userData));
 
-      if (userData.email === 'admin@gmail.com' || userData.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
+      // Rediriger en fonction du rôle
+      if (userData.email === "admin@gmail.com" || userData.role === "admin") {
+        router.push("/admin");
+        return;
       }
->>>>>>> 30fbff93f9fe6dd7e7bd59b2c37c0b91a77335b2
 
-      router.push("/dashboard"); // Rediriger vers le tableau de bord ou une autre page protégée
+      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue. Veuillez réessayer.");
       console.error("Login error:", err);

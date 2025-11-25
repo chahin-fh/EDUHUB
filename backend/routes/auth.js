@@ -1,15 +1,12 @@
 const express = require("express");
 const router = express.Router();
-<<<<<<< HEAD
+
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
 const { registerUser, loginUser } = require("../controllers/authController");
-=======
-const passport = require('passport');
-const jwt = require('jsonwebtoken');
-const { registerUser, loginUser } = require('../controllers/authController');
+
+
 const { protect } = require('../middleware/authMiddleware');
->>>>>>> 30fbff93f9fe6dd7e7bd59b2c37c0b91a77335b2
 
 // Local Auth
 router.post("/inscription", registerUser);
