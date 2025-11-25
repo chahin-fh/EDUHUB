@@ -1,15 +1,21 @@
-'use client';
+"use client";
+
+
+import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+
 
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const token = searchParams.get("token");
 
     const fetchUser = async (authToken: string) => {
       try {
@@ -33,10 +39,19 @@ function AuthCallbackContent() {
     };
 
     if (token) {
+<<<<<<< HEAD
+      localStorage.setItem("authToken", token);
+      // You might want to fetch user data here and store it as well
+      router.push("/dashboard");
+    } else {
+      // Handle error or redirect to login
+      router.push("/connexion");
+=======
       localStorage.setItem('authToken', token);
       fetchUser(token);
     } else {
       router.push('/connexion');
+>>>>>>> 30fbff93f9fe6dd7e7bd59b2c37c0b91a77335b2
     }
   }, [router, searchParams]);
 

@@ -1,26 +1,33 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { Button } from '../../src/components/ui/button';
-import { Input } from '../../src/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../src/components/ui/card';
-import { Label } from '../../src/components/ui/label';
-import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Button } from "../../src/components/ui/button";
+import { Input } from "../../src/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../../src/components/ui/card";
+import { Label } from "../../src/components/ui/label";
+import Link from "next/link";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -29,13 +36,13 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/connexion', {
-        method: 'POST',
+      const response = await fetch("http://localhost:5000/api/auth/connexion", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
@@ -43,9 +50,17 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Email ou mot de passe incorrect');
+        throw new Error(data.message || "Email ou mot de passe incorrect");
       }
 
+<<<<<<< HEAD
+      // Stocker le token (et éventuellement les informations utilisateur)
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ username: data.username, email: data.email })
+      );
+=======
       localStorage.setItem('authToken', data.token);
 
       // Fetch user data
@@ -67,10 +82,12 @@ export default function LoginPage() {
       } else {
         router.push('/dashboard');
       }
+>>>>>>> 30fbff93f9fe6dd7e7bd59b2c37c0b91a77335b2
 
+      router.push("/dashboard"); // Rediriger vers le tableau de bord ou une autre page protégée
     } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue. Veuillez réessayer.');
-      console.error('Login error:', err);
+      setError(err.message || "Une erreur est survenue. Veuillez réessayer.");
+      console.error("Login error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -135,7 +152,7 @@ export default function LoginPage() {
                   Connexion...
                 </>
               ) : (
-                'Se connecter'
+                "Se connecter"
               )}
             </Button>
           </CardContent>
@@ -153,7 +170,15 @@ export default function LoginPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 w-full">
-              <Button variant="outline" type="button" disabled={isLoading} onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'}>
+              <Button
+                variant="outline"
+                type="button"
+                disabled={isLoading}
+                onClick={() =>
+                  (window.location.href =
+                    "http://localhost:5000/api/auth/google")
+                }
+              >
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                   <path
                     d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
@@ -163,7 +188,11 @@ export default function LoginPage() {
                 Google
               </Button>
               <Button variant="outline" type="button" disabled={isLoading}>
-                <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="mr-2 h-4 w-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-2 16h-2v-6h2v6zm-1-6.891c-.607 0-1.1-.496-1.1-1.108 0-.612.492-1.108 1.1-1.108s1.1.496 1.1 1.108c0 .612-.492 1.108-1.1 1.108zm8 6.891h-1.706v-3.556c0-.976-.704-1.444-1.6-1.444-.8 0-1.3.5-1.5 1.1v4h-1.7v-6h1.6v.8c.5-.7 1.3-1.1 2.3-1.1 1.7 0 3 .9 3 3v3.256z" />
                 </svg>
                 LinkedIn
@@ -171,8 +200,11 @@ export default function LoginPage() {
             </div>
 
             <p className="text-center text-sm text-muted-foreground">
-              Pas encore de compte ?{' '}
-              <Link href="/inscription" className="text-primary hover:underline">
+              Pas encore de compte ?{" "}
+              <Link
+                href="/inscription"
+                className="text-primary hover:underline"
+              >
                 S&apos;inscrire
               </Link>
             </p>

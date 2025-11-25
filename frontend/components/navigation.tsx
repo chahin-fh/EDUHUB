@@ -1,11 +1,19 @@
 // components/navigation.tsx
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Menu, X, User, BookOpen, Users, MessageSquare, Home } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Menu,
+  X,
+  User,
+  BookOpen,
+  Users,
+  MessageSquare,
+  Home,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,22 +24,22 @@ export default function Navigation() {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const navLinks = [
-    { name: 'Accueil', href: '/', icon: Home },
-    { name: 'Cours', href: '/cours', icon: BookOpen },
-    { name: 'Trouver un Mentor', href: '/mentors', icon: Users },
-    { name: 'Contact', href: '/contact', icon: MessageSquare },
+    { name: "Accueil", href: "/", icon: Home },
+    { name: "Cours", href: "/cours", icon: BookOpen },
+    { name: "Trouver un Mentor", href: "/mentors", icon: Users },
+    { name: "Contact", href: "/contact", icon: MessageSquare },
   ];
 
   return (
     <nav
       className={cn(
-        'fixed w-full z-50 transition-all duration-300',
-        isScrolled ? 'bg-white/90 backdrop-blur-md shadow-sm' : 'bg-white'
+        "fixed w-full z-50 transition-all duration-300",
+        isScrolled ? "bg-white/90 backdrop-blur-md shadow-sm" : "bg-white"
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -55,8 +63,8 @@ export default function Navigation() {
                   key={link.name}
                   href={link.href}
                   className={cn(
-                    'flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary',
-                    isActive ? 'text-primary' : 'text-gray-600'
+                    "flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary",
+                    isActive ? "text-primary" : "text-gray-600"
                   )}
                 >
                   <Icon className="h-5 w-5" />
@@ -88,7 +96,11 @@ export default function Navigation() {
               onClick={() => setIsOpen(!isOpen)}
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-primary focus:outline-none"
             >
-              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {isOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </button>
           </div>
         </div>
@@ -106,10 +118,10 @@ export default function Navigation() {
                   key={link.name}
                   href={link.href}
                   className={cn(
-                    'flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium',
+                    "flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium",
                     isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-primary'
+                      ? "bg-primary/10 text-primary"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-primary"
                   )}
                   onClick={() => setIsOpen(false)}
                 >
