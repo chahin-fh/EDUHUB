@@ -20,6 +20,8 @@ import {
   FileText,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { ActivityChart } from "@/components/dashboard/activity-chart";
@@ -33,8 +35,57 @@ type ActivityItem = {
   type: "course" | "message" | "assignment";
 };
 
+interface User {
+  username: string;
+  email: string;
+  avatar?: string;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        router.push('/connexion');
+        return;
+      }
+
+      try {
+        const res = await fetch('http://localhost:5000/api/auth/me', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error('Failed to fetch user');
+        }
+
+        const userData: User = await res.json();
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+      } catch (error) {
+        console.error(error);
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        router.push('/connexion');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    router.push('/connexion');
+  };
 
   const handleNewCourse = () => {
     console.log("Création d'un nouveau cours");
@@ -84,6 +135,18 @@ export default function DashboardPage() {
         return "bg-gray-100";
     }
   };
+    if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Should be redirected by useEffect
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -91,16 +154,21 @@ export default function DashboardPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Bonjour, Élève 👋
+              Bonjour, {user?.username} 👋
             </h1>
             <p className="text-gray-600 mt-1">
               Voici un aperçu de votre progression
             </p>
           </div>
-          <Button onClick={handleNewCourse} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Nouveau cours
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button onClick={handleNewCourse} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Nouveau cours
+            </Button>
+            <Button onClick={handleLogout} variant="outline">
+              Déconnexion
+            </Button>
+          </div>
         </div>
 
         {/* Section des statistiques */}

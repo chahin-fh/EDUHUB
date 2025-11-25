@@ -46,9 +46,21 @@ export default function LoginPage() {
         throw new Error(data.message || 'Email ou mot de passe incorrect');
       }
 
-      // Stocker le token (et éventuellement les informations utilisateur)
       localStorage.setItem('authToken', data.token);
-      localStorage.setItem('user', JSON.stringify({ username: data.username, email: data.email }));
+
+      // Fetch user data
+      const userRes = await fetch('http://localhost:5000/api/auth/me', {
+        headers: {
+          Authorization: `Bearer ${data.token}`,
+        },
+      });
+
+      if (!userRes.ok) {
+        throw new Error('Failed to fetch user data after login');
+      }
+
+      const userData = await userRes.json();
+      localStorage.setItem('user', JSON.stringify(userData));
 
       router.push('/dashboard'); // Rediriger vers le tableau de bord ou une autre page protégée
 

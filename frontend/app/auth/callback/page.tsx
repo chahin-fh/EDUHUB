@@ -11,12 +11,31 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const token = searchParams.get('token');
 
+    const fetchUser = async (authToken: string) => {
+      try {
+        const res = await fetch('http://localhost:5000/api/auth/me', {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error('Failed to fetch user');
+        }
+
+        const userData = await res.json();
+        localStorage.setItem('user', JSON.stringify(userData));
+        router.push('/dashboard');
+      } catch (error) {
+        console.error(error);
+        router.push('/connexion');
+      }
+    };
+
     if (token) {
       localStorage.setItem('authToken', token);
-      // You might want to fetch user data here and store it as well
-      router.push('/dashboard');
+      fetchUser(token);
     } else {
-      // Handle error or redirect to login
       router.push('/connexion');
     }
   }, [router, searchParams]);

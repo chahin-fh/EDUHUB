@@ -3,6 +3,7 @@ const router = express.Router();
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const { registerUser, loginUser } = require('../controllers/authController');
+const { protect } = require('../middleware/authMiddleware');
 
 // Local Auth
 router.post('/inscription', registerUser);
@@ -23,5 +24,12 @@ router.get(
     res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
   }
 );
+
+// @desc    Get user data
+// @route   GET /api/auth/me
+// @access  Private
+router.get('/me', protect, (req, res) => {
+  res.status(200).json(req.user);
+});
 
 module.exports = router;
