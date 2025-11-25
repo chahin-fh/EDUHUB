@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const token = searchParams.get("token");
 
     if (token) {
-      localStorage.setItem('authToken', token);
+      localStorage.setItem("authToken", token);
       // You might want to fetch user data here and store it as well
-      router.push('/dashboard');
+      router.push("/dashboard");
     } else {
       // Handle error or redirect to login
-      router.push('/connexion');
+      router.push("/connexion");
     }
   }, [router, searchParams]);
 

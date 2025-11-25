@@ -205,7 +205,7 @@ export default function DashboardPage() {
                 variant="ghost"
                 className="w-full mt-4 text-blue-600 hover:text-blue-700"
               >
-                Voir toute l'activité
+                Voir toute l&apos;activité
               </Button>
             </CardContent>
           </Card>

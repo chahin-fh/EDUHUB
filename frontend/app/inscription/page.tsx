@@ -1,29 +1,36 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
-import { Loader2, CheckCircle2 } from 'lucide-react';
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import Link from "next/link";
+import { Loader2, CheckCircle2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -31,11 +38,11 @@ export default function RegisterPage() {
 
   const validateForm = () => {
     if (formData.password !== formData.confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
+      setError("Les mots de passe ne correspondent pas");
       return false;
     }
     if (formData.password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères');
+      setError("Le mot de passe doit contenir au moins 6 caractères");
       return false;
     }
     return true;
@@ -43,40 +50,42 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/inscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+      const response = await fetch(
+        "http://localhost:5000/api/auth/inscription",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: formData.name,
+            email: formData.email,
+            password: formData.password,
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Une erreur est survenue');
+        throw new Error(data.message || "Une erreur est survenue");
       }
 
       setSuccess(true);
-      
+
       setTimeout(() => {
-        router.push('/connexion');
+        router.push("/connexion");
       }, 2000);
-      
     } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue lors de l\'inscription');
-      console.error('Registration error:', err);
+      setError(err.message || "Une erreur est survenue lors de l'inscription");
+      console.error("Registration error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -93,12 +102,11 @@ export default function RegisterPage() {
           </div>
           <h2 className="text-2xl font-bold mb-2">Inscription réussie !</h2>
           <p className="text-muted-foreground mb-6">
-            Votre compte a été créé avec succès. Vous allez être redirigé vers la page de connexion...
+            Votre compte a été créé avec succès. Vous allez être redirigé vers
+            la page de connexion...
           </p>
           <Button asChild>
-            <Link href="/connexion">
-              Aller à la page de connexion
-            </Link>
+            <Link href="/connexion">Aller à la page de connexion</Link>
           </Button>
         </Card>
       </div>
@@ -121,7 +129,7 @@ export default function RegisterPage() {
                 {error}
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="name">Nom complet</Label>
               <Input
@@ -135,7 +143,7 @@ export default function RegisterPage() {
                 disabled={isLoading}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -149,7 +157,7 @@ export default function RegisterPage() {
                 disabled={isLoading}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe</Label>
               <Input
@@ -166,7 +174,7 @@ export default function RegisterPage() {
                 Le mot de passe doit contenir au moins 6 caractères
               </p>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
               <Input
@@ -180,7 +188,7 @@ export default function RegisterPage() {
                 minLength={6}
               />
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <input
@@ -193,14 +201,17 @@ export default function RegisterPage() {
                   htmlFor="terms"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  J'accepte les{' '}
-                  <Link href="/conditions" className="text-primary hover:underline">
-                    conditions d'utilisation
+                  J&apos;accepte les{" "}
+                  <Link
+                    href="/conditions"
+                    className="text-primary hover:underline"
+                  >
+                    conditions d&apos;utilisation
                   </Link>
                 </label>
               </div>
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
@@ -208,14 +219,14 @@ export default function RegisterPage() {
                   Création du compte...
                 </>
               ) : (
-                'Créer un compte'
+                "Créer un compte"
               )}
             </Button>
           </CardContent>
-          
+
           <CardFooter className="flex flex-col space-y-4">
             <p className="text-center text-sm text-muted-foreground">
-              Vous avez déjà un compte ?{' '}
+              Vous avez déjà un compte ?{" "}
               <Link href="/connexion" className="text-primary hover:underline">
                 Se connecter
               </Link>
