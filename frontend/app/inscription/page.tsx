@@ -83,6 +83,10 @@ export default function RegisterPage() {
       setTimeout(() => {
         router.push("/connexion");
       }, 2000);
+<<<<<<< HEAD
+=======
+
+>>>>>>> 30fbff93f9fe6dd7e7bd59b2c37c0b91a77335b2
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue lors de l'inscription");
       console.error("Registration error:", err);
@@ -201,11 +205,16 @@ export default function RegisterPage() {
                   htmlFor="terms"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
+<<<<<<< HEAD
                   J&apos;accepte les{" "}
                   <Link
                     href="/conditions"
                     className="text-primary hover:underline"
                   >
+=======
+                  J&apos;accepte les{' '}
+                  <Link href="/conditions" className="text-primary hover:underline">
+>>>>>>> 30fbff93f9fe6dd7e7bd59b2c37c0b91a77335b2
                     conditions d&apos;utilisation
                   </Link>
                 </label>

@@ -1,8 +1,15 @@
 const express = require("express");
 const router = express.Router();
+<<<<<<< HEAD
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
 const { registerUser, loginUser } = require("../controllers/authController");
+=======
+const passport = require('passport');
+const jwt = require('jsonwebtoken');
+const { registerUser, loginUser } = require('../controllers/authController');
+const { protect } = require('../middleware/authMiddleware');
+>>>>>>> 30fbff93f9fe6dd7e7bd59b2c37c0b91a77335b2
 
 // Local Auth
 router.post("/inscription", registerUser);
@@ -29,5 +36,12 @@ router.get(
     res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
   }
 );
+
+// @desc    Get user data
+// @route   GET /api/auth/me
+// @access  Private
+router.get('/me', protect, (req, res) => {
+  res.status(200).json(req.user);
+});
 
 module.exports = router;
