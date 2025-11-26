@@ -3,7 +3,7 @@ const router = express.Router();
 
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
-const { registerUser, loginUser } = require("../controllers/authController");
+const { registerUser, loginUser, getUserCount } = require("../controllers/authController");
 
 
 const { protect } = require('../middleware/authMiddleware');
@@ -11,6 +11,9 @@ const { protect } = require('../middleware/authMiddleware');
 // Local Auth
 router.post("/inscription", registerUser);
 router.post("/connexion", loginUser);
+
+// User count
+router.get("/users/count", protect, getUserCount);
 
 // Google Auth
 router.get(

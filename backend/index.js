@@ -48,9 +48,14 @@ const connectDB = async () => {
 connectDB();
 
 const authRoutes = require("./routes/auth");
+const coursesRoutes = require("./routes/courses");
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/courses", coursesRoutes);
+
+// Serve uploaded files
+app.use("/uploads", express.static("uploads"));
 
 app.get("/", (req, res) => {
   res.json({ message: "API is running", status: "ok" });

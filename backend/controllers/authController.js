@@ -56,7 +56,7 @@ exports.registerUser = async (req, res) => {
     if (user) {
       res.status(201).json({
         _id: user._id,
-        username: user.username,
+        name: user.username,
         email: user.email,
         token: generateToken(user._id),
       });
@@ -100,7 +100,7 @@ exports.loginUser = async (req, res) => {
 
     res.status(200).json({
       _id: user._id,
-      username: user.username,
+      name: user.username,
       email: user.email,
       token: generateToken(user._id),
     });
@@ -109,5 +109,20 @@ exports.loginUser = async (req, res) => {
     res
       .status(500)
       .json({ message: "Server error during login", error: error.message });
+  }
+};
+
+// @desc    Get total user count
+// @route   GET /api/auth/users/count
+// @access  Private
+exports.getUserCount = async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+    res.status(200).json({ count });
+  } catch (error) {
+    console.error("Get user count error:", error);
+    res
+      .status(500)
+      .json({ message: "Server error getting user count", error: error.message });
   }
 };
