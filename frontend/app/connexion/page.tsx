@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "../../src/components/ui/button";
 import { Input } from "../../src/components/ui/input";
 import {
@@ -17,6 +18,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
+  const { login } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -53,20 +55,6 @@ export default function LoginPage() {
         throw new Error(data.message || "Email ou mot de passe incorrect");
       }
 
-      // Stocker le token (et éventuellement les informations utilisateur)
-      localStorage.setItem("authToken", data.token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({ username: data.username, email: data.email })
-      );
-
-      localStorage.setItem('authToken', data.token);
-
-      // Stocker le token et récupérer les données utilisateur
-      localStorage.setItem("authToken", data.token);
-
-
-      // Récupérer les données utilisateur
       const userRes = await fetch("http://localhost:5000/api/auth/me", {
         headers: {
           Authorization: `Bearer ${data.token}`,
@@ -78,18 +66,16 @@ export default function LoginPage() {
       }
 
       const userData = await userRes.json();
-      localStorage.setItem("user", JSON.stringify(userData));
+      
+      // Use the login function from AuthContext
+      login(data.token, userData);
 
       // Rediriger en fonction du rôle
-      if (userData.email === "admin@gmail.com" || userData.role === "admin") {
+      if (userData.role === "admin") {
         router.push("/admin");
-        return;
+      } else {
+        router.push("/dashboard");
       }
-
-
-
-
-      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue. Veuillez réessayer.");
       console.error("Login error:", err);

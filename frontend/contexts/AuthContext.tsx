@@ -12,7 +12,8 @@ import { useRouter } from "next/navigation";
 interface User {
   id: string;
   email: string;
-  name: string;
+  username: string;
+  avatar?: string;
   // Add other user properties as needed
 }
 

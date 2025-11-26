@@ -20,7 +20,8 @@ import {
   FileText,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from 'react';
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -42,54 +43,13 @@ interface User {
 }
 
 export default function DashboardPage() {
+  const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        router.push('/connexion');
-        return;
-      }
 
-      try {
-        const res = await fetch('http://localhost:5000/api/auth/me', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) {
-          throw new Error('Failed to fetch user');
-        }
-
-        const userData: User = await res.json();
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-      } catch (error) {
-        console.error(error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        router.push('/connexion');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUser();
-  }, [router]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-    router.push('/connexion');
-  };
 
   const handleNewCourse = () => {
-    console.log("Création d'un nouveau cours");
-    // router.push("/courses/new");
+    router.push("/cours/upload");
   };
 
   const navigateTo = (path: string) => {
@@ -135,7 +95,13 @@ export default function DashboardPage() {
         return "bg-gray-100";
     }
   };
-  if (loading) {
+    useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/connexion');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -143,7 +109,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user) {
+    if (!user) {
     return null; // Should be redirected by useEffect
   }
 
@@ -165,10 +131,7 @@ export default function DashboardPage() {
               <Plus className="h-4 w-4" />
               Nouveau cours
             </Button>
-            <Button onClick={handleLogout} variant="outline">
-              Déconnexion
-            </Button>
-          </div>
+                      </div>
         </div>
 
         {/* Section des statistiques */}

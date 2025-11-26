@@ -61,11 +61,16 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userCount, setUserCount] = useState(0);
+  const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
+  const [isAuthorized, setIsAuthorized] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
       const token = localStorage.getItem('authToken');
       if (!token) {
+        setIsAuthorized(false);
+        setLoading(false);
         router.push('/connexion');
         return;
       }
@@ -82,15 +87,52 @@ export default function AdminDashboard() {
         }
 
         const userData: User = await res.json();
+        
+        // Check if user is admin
         if (userData.role !== 'admin') {
-          router.push('/dashboard');
+          setIsAuthorized(false);
+          setLoading(false);
+          router.replace('/dashboard');
           return;
         }
+
+        setIsAuthorized(true);
         setUser(userData);
+
+        // Fetch user count
+        try {
+          const usersRes = await fetch('http://localhost:5000/api/auth/users/count', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (usersRes.ok) {
+            const countData = await usersRes.json();
+            setUserCount(countData.count || 0);
+          }
+        } catch (err) {
+          console.error('Error fetching user count:', err);
+        }
+
+        // Fetch received messages
+        try {
+          const messagesRes = await fetch('http://localhost:5000/api/messages/received', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (messagesRes.ok) {
+            const messagesData = await messagesRes.json();
+            setReceivedMessages(Array.isArray(messagesData) ? messagesData.slice(0, 3) : []);
+          }
+        } catch (err) {
+          console.error('Error fetching messages:', err);
+        }
       } catch (error) {
         console.error(error);
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
+        setIsAuthorized(false);
         router.push('/connexion');
       } finally {
         setLoading(false);
@@ -99,10 +141,11 @@ export default function AdminDashboard() {
 
     fetchUser();
   }, [router]);
+
   const stats = [
-    { title: "Utilisateurs", value: "1,234", icon: <Users className="h-5 w-5 text-purple-600" />, change: "+12%", trend: "up" as const },
+    { title: "Utilisateurs", value: userCount.toString(), icon: <Users className="h-5 w-5 text-purple-600" />, change: "+12%", trend: "up" as const },
     { title: "Cours", value: "89", icon: <BookOpen className="h-5 w-5 text-blue-600" />, change: "+5", trend: "up" as const },
-    { title: "Messages", value: "42", icon: <MessageSquare className="h-5 w-5 text-green-600" />, change: "+3", trend: "new" as const },
+    { title: "Messages", value: receivedMessages.length.toString(), icon: <MessageSquare className="h-5 w-5 text-green-600" />, change: "+3", trend: "new" as const },
     { title: "Taux d'engagement", value: "78%", icon: <BarChart className="h-5 w-5 text-amber-600" />, change: "+2%", trend: "up" as const, showProgress: true },
   ];
 
@@ -126,8 +169,8 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!user) {
-    return null; // Should be redirected by useEffect
+  if (!isAuthorized || !user) {
+    return null; // Will be redirected by useEffect
   }
 
   return (
@@ -143,9 +186,6 @@ export default function AdminDashboard() {
             <Button>
               <Settings className="mr-2 h-4 w-4" />
               Paramètres
-            </Button>
-            <Button onClick={handleLogout} variant="outline">
-              Déconnexion
             </Button>
           </div>
         </div>
@@ -194,37 +234,32 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Prochaines sessions */}
+          {/* Messages reçus */}
           <Card>
             <CardHeader>
-              <CardTitle>Prochaines sessions</CardTitle>
+              <CardTitle>Messages reçus</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-                  <div className="rounded-lg bg-blue-100 p-2 mr-4">
-                    <Calendar className="h-5 w-5 text-blue-600" />
+                {receivedMessages.length > 0 ? (
+                  receivedMessages.map((message, index) => (
+                    <div key={index} className="flex items-start p-2 hover:bg-gray-50 rounded-lg cursor-pointer border-b last:border-b-0">
+                      <div className="rounded-lg bg-blue-100 p-2 mr-4">
+                        <MessageSquare className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{message.subject || 'Sans sujet'}</p>
+                        <p className="text-xs text-gray-500 truncate">{message.sender || message.email || 'Anonyme'}</p>
+                        <p className="text-xs text-gray-600 line-clamp-2">{message.message || message.content}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <MessageSquare className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-500 text-sm">Aucun message reçu</p>
                   </div>
-                  <div>
-                    <p className="font-medium text-sm">Introduction à React</p>
-                    <p className="text-xs text-gray-500 flex items-center">
-                      <Clock className="mr-1 h-3 w-3" />
-                      Demain, 14h00 - 15h30
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-                  <div className="rounded-lg bg-blue-100 p-2 mr-4">
-                    <Calendar className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">Atelier pratique TypeScript</p>
-                    <p className="text-xs text-gray-500 flex items-center">
-                      <Clock className="mr-1 h-3 w-3" />
-                      Jeudi, 10h00 - 12h00
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
