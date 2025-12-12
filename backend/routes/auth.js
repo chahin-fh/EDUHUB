@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const { registerUser, loginUser, getUserCount } = require("../controllers/authController");
 
 
-const { protect } = require('../middleware/authMiddleware');
+const protect = require('../middleware/authMiddleware');
 
 // Local Auth
 router.post("/inscription", registerUser);

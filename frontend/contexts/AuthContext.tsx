@@ -14,7 +14,12 @@ interface User {
   email: string;
   username: string;
   avatar?: string;
-  // Add other user properties as needed
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  birthdate?: string;
+  about?: string;
+  subjects?: string[];
 }
 
 interface AuthContextType {
@@ -22,6 +27,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (token: string, userData: User) => void;
   logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
   isAuthenticated: boolean;
 }
 
@@ -65,11 +71,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/connexion");
   };
 
+  const updateUser = (userData: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    }
+  };
+
   const value = {
     user,
     isLoading,
     login,
     logout,
+    updateUser,
     isAuthenticated: !!user,
   };
 

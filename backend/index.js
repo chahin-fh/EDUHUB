@@ -50,6 +50,8 @@ connectDB();
 const authRoutes = require("./routes/auth");
 const coursesRoutes = require("./routes/courses");
 
+app.use('/api/subjects', require('./routes/subjects'));
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/courses", coursesRoutes);

@@ -183,10 +183,12 @@ export default function AdminDashboard() {
               <Calendar className="mr-2 h-4 w-4" />
               Calendrier
             </Button>
-            <Button>
-              <Settings className="mr-2 h-4 w-4" />
-              Paramètres
-            </Button>
+            <Link href="/admin/settings">
+              <Button>
+                <Settings className="mr-2 h-4 w-4" />
+                Paramètres
+              </Button>
+            </Link>
           </div>
         </div>
 
