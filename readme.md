@@ -121,3 +121,4 @@ The backend API will be available at `http://localhost:5000`
 - Advanced course filtering
 - User reviews and ratings
 - Social features (followers, recommendations)
+join from pc 
