@@ -21,8 +21,8 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { ActivityChart } from "@/components/dashboard/activity-chart";
@@ -40,13 +40,30 @@ interface User {
   username: string;
   email: string;
   avatar?: string;
+  role?: string;
 }
 
 export default function DashboardPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
 
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/connexion");
+    }
+  }, [isLoading, isAuthenticated, router]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null; // Will redirect
+  }
 
   const handleNewCourse = () => {
     router.push("/cours/upload");
@@ -95,23 +112,6 @@ export default function DashboardPage() {
         return "bg-gray-100";
     }
   };
-    useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/connexion');
-    }
-  }, [isLoading, isAuthenticated, router]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-    if (!user) {
-    return null; // Should be redirected by useEffect
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -131,7 +131,7 @@ export default function DashboardPage() {
               <Plus className="h-4 w-4" />
               Nouveau cours
             </Button>
-                      </div>
+          </div>
         </div>
 
         {/* Section des statistiques */}

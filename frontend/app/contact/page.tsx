@@ -185,7 +185,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="font-medium">Email</h3>
-                  <p className="text-muted-foreground">L&apos;équipe pédagogique</p>
+                  <p className="text-muted-foreground">malekfhima1@gmail.com</p>
                 </div>
               </div>
 
@@ -195,7 +195,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="font-medium">Téléphone</h3>
-                  <p className="text-muted-foreground">+33 1 23 45 67 89</p>
+                  <p className="text-muted-foreground">+216 25992977</p>
                   <p className="text-sm text-muted-foreground">Lundi - Vendredi, 9h - 18h</p>
                 </div>
               </div>
@@ -206,8 +206,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="font-medium">Adresse</h3>
-                  <p className="text-muted-foreground">123 Rue de l&apos;Éducation</p>
-                  <p className="text-muted-foreground">75000 Paris, France</p>
+                  <p className="text-muted-foreground">M&apos;saken, Sousse, Tunis</p>
+                  <p className="text-muted-foreground">4070 M&apos;saken, Sousse, Tunis</p>
                 </div>
               </div>
             </CardContent>

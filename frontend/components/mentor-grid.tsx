@@ -1,112 +1,129 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import MentorCard from "./mentor-card"
+import { useEffect, useState } from "react";
+import MentorCard from "./mentor-card";
+import { Users as UsersIcon } from "lucide-react";
 
-const MENTORS = [
-  {
-    id: 1,
-    name: "John Doe",
-    profession: "Frontend Developer",
-    description: "Senior web developer with 8 years of experience in React and Vue.js",
-    rating: 5,
-    image: "👨‍💻",
-  },
-  {
-    id: 2,
-    name: "Sarah Smith",
-    profession: "Fullstack Developer",
-    description: "Full-stack expert with Node.js backend and modern frontend skills",
-    rating: 5,
-    image: "👩‍💻",
-  },
-  {
-    id: 3,
-    name: "Michael Johnson",
-    profession: "UI/UX Designer",
-    description: "Creative designer focused on accessibility and user experience",
-    rating: 5,
-    image: "🎨",
-  },
-  {
-    id: 4,
-    name: "Emily Davis",
-    profession: "Mobile Developer",
-    description: "Mobile app specialist in Flutter and React Native",
-    rating: 5,
-    image: "📱",
-  },
-  {
-    id: 5,
-    name: "David Wilson",
-    profession: "Backend Developer",
-    description: "Backend expert with database design and API development experience",
-    rating: 5,
-    image: "🖥️",
-  },
-  {
-    id: 6,
-    name: "Jessica Brown",
-    profession: "Junior Developer",
-    description: "Passionate junior developer learning new technologies daily",
-    rating: 5,
-    image: "👩‍🎓",
-  },
-]
-
-interface MentorGridProps {
-  subject: string
-  search: string
+interface User {
+  _id: string;
+  name: string;
+  username: string;
+  email: string;
+  role: string;
+  bio: string;
+  isActive: boolean;
+  createdAt: string;
+  avatar?: string;
+  monitorProfile?: {
+    expertise: string[];
+    rating: number;
+    verified: boolean;
+  };
 }
 
-export default function MentorGrid({ subject, search }: MentorGridProps) {
-  const [filteredMentors, setFilteredMentors] = useState(MENTORS)
-  const [visibleIndices, setVisibleIndices] = useState<number[]>([])
+interface UserGridProps {
+  subject: string;
+  search: string;
+}
+
+export default function UserGrid({ subject, search }: UserGridProps) {
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let filtered = MENTORS
+    fetchUsers();
+  }, []);
 
-    if (search) {
+  useEffect(() => {
+    filterUsers();
+  }, [search, subject, users]);
+
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+
+      const res = await fetch("http://localhost:5000/api/usersList/public");
+      const data = await res.json();
+
+      if (data.success && Array.isArray(data.users)) {
+        setUsers(data.users);
+      } else if (Array.isArray(data)) {
+        setUsers(data);
+      }
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error loading users", error);
+      setIsLoading(false);
+    }
+  };
+
+  const filterUsers = () => {
+    let filtered = [...users];
+
+    if (search.trim()) {
+      const value = search.toLowerCase();
       filtered = filtered.filter(
-        (mentor) =>
-          mentor.name.toLowerCase().includes(search.toLowerCase()) ||
-          mentor.profession.toLowerCase().includes(search.toLowerCase()),
-      )
+        (u) =>
+          u.name?.toLowerCase().includes(value) ||
+          u.bio?.toLowerCase().includes(value) ||
+          u.monitorProfile?.expertise?.some((e) =>
+            e.toLowerCase().includes(value)
+          )
+      );
     }
 
-    setFilteredMentors(filtered)
-    setVisibleIndices([])
-  }, [search, subject])
+    if (subject && subject !== "Tous") {
+      const value = subject.toLowerCase();
+      filtered = filtered.filter((u) =>
+        u.monitorProfile?.expertise?.some((e) =>
+          e.toLowerCase().includes(value)
+        )
+      );
+    }
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const indices = filteredMentors.map((_, idx) => idx)
-      setVisibleIndices(indices)
-    }, 100)
-    return () => clearTimeout(timer)
-  }, [filteredMentors])
+    setFilteredUsers(filtered);
+  };
 
   return (
-    <section id="profiles" className="py-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-12 animate-fadeInUp">
-          <h2 className="text-4xl font-bold mb-2">Meet Our Experts</h2>
-          <p className="text-lg text-muted-foreground">Connect with talented professionals ready to mentor you</p>
+    <section className="py-20">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="mb-10">
+          <h2 className="text-4xl font-bold mb-2">Mentors</h2>
+          <p className="text-muted-foreground">
+            Discover all active mentors
+          </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredMentors.map((mentor, idx) => (
-            <div
-              key={mentor.id}
-              className={`transition-all duration-500 ${visibleIndices.includes(idx) ? "animate-fadeInUp" : "opacity-0"
-                }`}
-              style={{ animationDelay: `${idx * 100}ms` }}
-            >
-              <MentorCard mentor={mentor} />
-            </div>
-          ))}
-        </div>
+        {isLoading && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-40 bg-gray-200 rounded-lg animate-pulse"
+              />
+            ))}
+          </div>
+        )}
+
+        {!isLoading && filteredUsers.length > 0 && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredUsers.map((user) => (
+              <MentorCard key={user._id} user={user} />
+            ))}
+          </div>
+        )}
+
+        {!isLoading && filteredUsers.length === 0 && (
+          <div className="text-center py-16">
+            <UsersIcon className="mx-auto w-10 h-10 text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold">No mentors found</h3>
+            <p className="text-gray-500">
+              Try changing your search or subject
+            </p>
+          </div>
+        )}
       </div>
     </section>
-  )
+  );
 }

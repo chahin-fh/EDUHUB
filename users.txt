@@ -1,0 +1,6 @@
+#admin
+email : malekfhima1@gmail.com
+pass : 123456789
+#user
+email: mohec46222@gamintor.com
+pass: azertyazerty

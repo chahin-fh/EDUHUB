@@ -7,12 +7,6 @@ const HeroSection = dynamic(() => import("@/components/hero-section"), {
   loading: () => <div className="h-[500px] bg-muted/50 animate-pulse"></div>,
 });
 
-const SubjectsFilter = dynamic(() => import("@/components/subjects-filter"), {
-  loading: () => (
-    <div className="h-16 bg-muted/50 rounded-lg animate-pulse"></div>
-  ),
-});
-
 const MentorGrid = dynamic(() => import("@/components/mentor-grid"), {
   loading: () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -64,13 +58,7 @@ const ErrorMessage = ({
 
 export default function Home() {
   const [error, setError] = useState<string | null>(null);
-  const [selectedSubject, setSelectedSubject] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-
-  const handleSubjectSelect = useCallback((subject: string) => {
-    setSelectedSubject(subject === "Tous" ? "" : subject);
-    // Ici, vous pourriez ajouter la logique de filtrage
-  }, []);
 
   const handleSearch = useCallback((query: string) => {
     try {
@@ -84,7 +72,6 @@ export default function Home() {
 
   const handleRetry = () => {
     setError(null);
-    setSelectedSubject("");
     setSearchQuery("");
   };
 
@@ -94,17 +81,44 @@ export default function Home() {
         <HeroSection />
 
         <section className="container mx-auto px-4 py-12">
-          <h2 className="text-3xl font-bold text-center mb-8">
-            Trouvez votre mentor
-          </h2>
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-4xl font-bold text-center mb-8">
+              Trouvez votre mentor
+            </h2>
+
+            {/* Barre de recherche intégrée */}
+            <div className="mb-8">
+              <div className="relative max-w-2xl mx-auto">
+                <div className="flex items-center bg-background border border-border rounded-full px-6 py-4 focus-within:border-primary transition">
+                  <svg
+                    className="w-5 h-5 text-muted-foreground mr-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Rechercher un mentor par nom, profession..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="flex-1 bg-transparent outline-none placeholder-muted-foreground text-lg"
+                  />
+                </div>
+              </div>
+            </div>
+
             {error && <ErrorMessage message={error} onRetry={handleRetry} />}
-            <SubjectsFilter
-              onSubjectSelect={handleSubjectSelect}
-              onSearch={handleSearch}
-            />
+
+            {/* Affichage de tous les utilisateurs avec résultats de recherche */}
             <div className="mt-8">
-              <MentorGrid subject={selectedSubject} search={searchQuery} />
+              <MentorGrid subject="" search={searchQuery} />
             </div>
           </div>
         </section>

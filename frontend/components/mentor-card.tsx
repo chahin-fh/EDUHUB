@@ -3,22 +3,35 @@
 import { useState } from "react"
 import { Star, Github, Linkedin, Twitter, MessageCircle } from "lucide-react"
 
-interface Mentor {
-  id: number
-  name: string
-  profession: string
-  description: string
-  rating: number
-  image: string
+interface User {
+  _id: string;
+  name: string;
+  username: string;
+  email: string;
+  role: string;
+  bio: string;
+  isActive: boolean;
+  createdAt: string;
+  avatar?: string;
+  monitorProfile?: {
+    expertise: string[];
+    rating: number;
+    verified: boolean;
+  };
 }
 
 interface MentorCardProps {
-  mentor: Mentor
+  user: User
 }
 
-export default function MentorCard({ mentor }: MentorCardProps) {
+export default function MentorCard({ user }: MentorCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+
+  const profession = user.monitorProfile?.expertise?.[0] || "Mentor";
+  const rating = user.monitorProfile?.rating || 0;
+  const description = user.bio || "No description provided.";
+  const avatar = user.avatar || "👤"; // Default avatar if none provided
 
   return (
     <div
@@ -36,7 +49,7 @@ export default function MentorCard({ mentor }: MentorCardProps) {
           className="relative z-10 transition-transform duration-300"
           style={{ transform: isHovered ? "scale(1.1)" : "scale(1)" }}
         >
-          {mentor.image}
+          {avatar}
         </span>
       </div>
 
@@ -56,21 +69,21 @@ export default function MentorCard({ mentor }: MentorCardProps) {
         </div>
 
         {/* Name & Title */}
-        <h3 className="text-lg font-bold mb-1">{mentor.name}</h3>
-        <p className="text-sm text-primary font-medium mb-4">{mentor.profession}</p>
+        <h3 className="text-lg font-bold mb-1">{user.name}</h3>
+        <p className="text-sm text-primary font-medium mb-4">{profession}</p>
 
         {/* Rating */}
         <div className="flex gap-1 mb-4">
-          {[...Array(mentor.rating)].map((_, i) => (
-            <Star key={i} size={16} className="fill-yellow-400 text-yellow-400" />
+          {[...Array(5)].map((_, i) => (
+            <Star key={i} size={16} className={`${i < Math.round(rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
           ))}
         </div>
 
         {/* Description - Expandable */}
         <div
-          className={`transition-all duration-300 overflow-hidden ${isExpanded ? "max-h-20 opacity-100 mb-4" : "max-h-0 opacity-0"}`}
+          className={`transition-all duration-300 overflow-hidden ${isExpanded ? "max-h-40 opacity-100 mb-4" : "max-h-0 opacity-0"}`}
         >
-          <p className="text-sm text-muted-foreground">{mentor.description}</p>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
 
         {/* Buttons */}

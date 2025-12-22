@@ -1,0 +1,418 @@
+const express = require("express");
+const router = express.Router();
+const User = require("../models/User");
+const protect = require("../middleware/authMiddleware");
+
+// @desc    Get all mentors (public endpoint)
+// @route   GET /api/usersList/public
+// @access  Public
+router.get("/public", async (req, res) => {
+  try {
+    const {
+      search,
+      subject,
+      rating,
+      experience,
+      page = 1,
+      limit = 12,
+      sortBy = "monitorProfile.rating",
+      sortOrder = "desc",
+    } = req.query;
+
+    // Build query - only show verified monitors
+    let query = {
+      isMonitor: true,
+      "monitorProfile.verified": true,
+      isActive: true,
+    };
+
+    // Search by name or username or email or bio
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { username: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { bio: { $regex: search, $options: "i" } },
+        { "monitorProfile.expertise": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Filter by subject (expertise)
+    if (subject) {
+      query["monitorProfile.expertise"] = { $regex: subject, $options: "i" };
+    }
+
+    // Filter by rating
+    if (rating) {
+      const minRating = parseInt(rating);
+      query["monitorProfile.rating"] = { $gte: minRating };
+    }
+
+    // Filter by experience (based on creation date)
+    if (experience) {
+      const now = new Date();
+      let experienceDate;
+
+      if (experience === "senior") {
+        experienceDate = new Date(
+          now.getFullYear() - 3,
+          now.getMonth(),
+          now.getDate()
+        );
+      } else if (experience === "intermediate") {
+        experienceDate = new Date(
+          now.getFullYear() - 1,
+          now.getMonth(),
+          now.getDate()
+        );
+      } else if (experience === "beginner") {
+        experienceDate = new Date(
+          now.getFullYear() - 0.5,
+          now.getMonth(),
+          now.getDate()
+        );
+      }
+
+      if (experienceDate) {
+        query.createdAt = { $lte: experienceDate };
+      }
+    }
+
+    // Pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Sort options
+    const sortOptions = {};
+    const validSortFields = [
+      "name",
+      "username",
+      "email",
+      "createdAt",
+      "role",
+      "isMonitor",
+      "monitorProfile.rating",
+    ];
+    const sortField = validSortFields.includes(sortBy)
+      ? sortBy
+      : "monitorProfile.rating";
+    const sortDirection = sortOrder === "asc" ? 1 : -1;
+    sortOptions[sortField] = sortDirection;
+
+    // Get mentors
+    const mentors = await User.find(query)
+      .select(
+        "name username email role isMonitor monitorProfile avatar bio createdAt isActive emailVerified"
+      )
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limitNum);
+
+    // Get total count for pagination
+    const total = await User.countDocuments(query);
+
+    // Get unique subjects for filtering
+    const allMentors = await User.find({
+      isMonitor: true,
+      "monitorProfile.expertise": { $exists: true, $ne: [] },
+    });
+    const subjects = [
+      ...new Set(
+        allMentors.flatMap((mentor) => mentor.monitorProfile?.expertise || [])
+      ),
+    ];
+
+    res.json({
+      success: true,
+      users: mentors,
+      pagination: {
+        current: pageNum,
+        pages: Math.ceil(total / limitNum),
+        total,
+        limit: limitNum,
+      },
+      subjects,
+      filters: {
+        search: search || "",
+        subject: subject || "",
+        rating: rating || "",
+        experience: experience || "",
+        sortBy,
+        sortOrder,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching public mentors:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching mentors",
+      error: error.message,
+    });
+  }
+});
+
+// @desc    Get all users with search and filtering
+// @route   GET /api/usersList
+// @access  Private
+router.get("/", protect, async (req, res) => {
+  try {
+    const {
+      search,
+      subject,
+      role,
+      status,
+      page = 1,
+      limit = 50, // Augmenter la limite par défaut
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
+
+    // Build query
+    let query = {};
+
+    // Search by name or username or email or bio
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { username: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { bio: { $regex: search, $options: "i" } },
+        { "monitorProfile.expertise": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Filter by subject (expertise)
+    if (subject) {
+      query["monitorProfile.expertise"] = { $regex: subject, $options: "i" };
+    }
+
+    // Filter by role
+    if (role) {
+      if (role === "monitor") {
+        query.isMonitor = true;
+      } else {
+        query.role = role;
+      }
+    }
+
+    // Filter by status
+    if (status) {
+      if (status === "active") {
+        query.isActive = true;
+      } else if (status === "inactive") {
+        query.isActive = false;
+      } else if (status === "verified") {
+        query.emailVerified = true;
+      }
+    }
+
+    // Pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Sort options
+    const sortOptions = {};
+    const validSortFields = [
+      "name",
+      "username",
+      "email",
+      "createdAt",
+      "role",
+      "isMonitor",
+      "monitorProfile.rating",
+    ];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+    const sortDirection = sortOrder === "asc" ? 1 : -1;
+    sortOptions[sortField] = sortDirection;
+
+    // Get users
+    const users = await User.find(query)
+      .select(
+        "-password -passwordResetToken -passwordResetExpires -emailVerificationToken -emailVerificationExpires"
+      )
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limitNum);
+
+    // Get total count for pagination
+    const total = await User.countDocuments(query);
+
+    // Get unique subjects for filtering
+    const allUsers = await User.find({
+      "monitorProfile.expertise": { $exists: true, $ne: [] },
+    });
+    const subjects = [
+      ...new Set(
+        allUsers.flatMap((user) => user.monitorProfile?.expertise || [])
+      ),
+    ];
+
+    res.json({
+      success: true,
+      users,
+      pagination: {
+        current: pageNum,
+        pages: Math.ceil(total / limitNum),
+        total,
+        limit: limitNum,
+      },
+      subjects,
+      filters: {
+        search: search || "",
+        subject: subject || "",
+        role: role || "",
+        status: status || "",
+        sortBy,
+        sortOrder,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching users",
+      error: error.message,
+    });
+  }
+});
+
+// @desc    Get user statistics
+// @route   GET /api/usersList/stats
+// @access  Private
+router.get("/stats", protect, async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const adminUsers = await User.countDocuments({ role: "admin" });
+    const regularUsers = await User.countDocuments({ role: "user" });
+    const monitors = await User.countDocuments({ isMonitor: true });
+    const activeMonitors = await User.countDocuments({
+      isMonitor: true,
+      "monitorProfile.verified": true,
+    });
+
+    // Get recent users
+    const recentUsers = await User.find()
+      .select("name username email role isMonitor createdAt")
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    res.json({
+      success: true,
+      stats: {
+        total: totalUsers,
+        admin: adminUsers,
+        user: regularUsers,
+        monitors,
+        activeMonitors,
+      },
+      recentUsers,
+    });
+  } catch (error) {
+    console.error("Error fetching user stats:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching user statistics",
+      error: error.message,
+    });
+  }
+});
+
+// @desc    Get user by ID
+// @route   GET /api/usersList/:id
+// @access  Private
+router.get("/:id", protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select(
+      "-password -passwordResetToken -passwordResetExpires -emailVerificationToken -emailVerificationExpires"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Get user's courses if they are a monitor
+    let userCourses = [];
+    if (user.isMonitor || user.role === "admin") {
+      const Course = require("../models/Course");
+      userCourses = await Course.find({
+        uploadedBy: user._id,
+      }).select("courseName description createdAt status category level");
+    }
+
+    res.json({
+      success: true,
+      user,
+      courses: userCourses,
+    });
+  } catch (error) {
+    console.error("Error fetching user details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching user details",
+      error: error.message,
+    });
+  }
+});
+
+// @desc    Get all users (public endpoint)
+// @route   GET /api/usersList/all-users
+// @access  Public
+router.get("/all-users", async (req, res) => {
+  try {
+    const { search, page = 1, limit = 12 } = req.query;
+
+    // Build query - only show regular users (not monitors)
+    let query = {
+      role: "user",
+      isActive: true,
+    };
+
+    // Search by name, username, or email
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { username: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const users = await User.find(query)
+      .select(
+        "-password -passwordResetToken -passwordResetExpires -emailVerificationToken -emailVerificationExpires"
+      )
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    const total = await User.countDocuments(query);
+
+    res.json({
+      success: true,
+      users,
+      pagination: {
+        current: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching users",
+      error: error.message,
+    });
+  }
+});
+
+module.exports = router;

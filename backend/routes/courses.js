@@ -1,53 +1,89 @@
 const express = require("express");
 const router = express.Router();
-const multer = require("multer");
-const path = require("path");
-const protect = require("../middleware/authMiddleware");
+const { protect, restrictTo } = require("../middleware/auth");
+const { uploadVideo } = require("../config/cloudinary");
+const { uploadDocument } = require("../config/multer");
+const Course = require("../models/Course");
 const {
-  uploadCourse,
   getAllCourses,
-  getCourseById,
-  downloadCourse,
+  getCourseById: getCourse,
+  createCourse,
+  updateCourse,
   deleteCourse,
+  enrollCourse,
+  getMyCourses,
+  getInstructorCourses,
+  updateProgress,
+  uploadCourse,
+  downloadCourse,
 } = require("../controllers/courseController");
 
-// Configure multer for PDF upload
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, "../uploads/courses");
-    // Create directory if it doesn't exist
-    const fs = require("fs");
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    // Create unique filename with timestamp
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, "course-" + uniqueSuffix + ".pdf");
-  },
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === "application/pdf") {
-      cb(null, true);
-    } else {
-      cb(new Error("Only PDF files are allowed"));
-    }
-  },
-});
-
-// Routes
-router.post("/upload", protect, upload.single("pdf"), uploadCourse);
+// Routes publiques
 router.get("/", getAllCourses);
-router.get("/:id", getCourseById);
-router.get("/:id/download", downloadCourse);
-router.delete("/:id", protect, deleteCourse);
+router.get("/:id([0-9a-fA-F]{24})", getCourse);
+router.post(
+  "/upload",
+  protect,
+  uploadDocument.single("document"),
+  uploadCourse
+);
+router.get("/:id([0-9a-fA-F]{24})/download", downloadCourse);
+
+// Routes protégées (authentification requise)
+router.use(protect);
+
+// Étudiants
+router.post("/:id([0-9a-fA-F]{24})/enroll", enrollCourse);
+router.get("/my/enrolled", getMyCourses);
+router.patch("/:id([0-9a-fA-F]{24})/progress", updateProgress);
+
+// Instructeurs
+router.get(
+  "/instructor/my-courses",
+  restrictTo("instructor", "admin"),
+  getInstructorCourses
+);
+router.post(
+  "/:id([0-9a-fA-F]{24})/upload-video",
+  restrictTo("instructor", "admin"),
+  uploadVideo.single("video"),
+  async (req, res) => {
+    try {
+      const course = await Course.findById(req.params.id);
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      if (
+        course.instructor?.toString() !== req.user._id.toString() &&
+        req.user.role !== "admin"
+      ) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      course.previewVideo = req.file.path;
+      await course.save();
+
+      res.json({
+        success: true,
+        url: req.file.path,
+        duration: req.file.duration,
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+router.post("/", restrictTo("instructor", "admin"), createCourse);
+router.patch(
+  "/:id([0-9a-fA-F]{24})",
+  restrictTo("instructor", "admin"),
+  updateCourse
+);
+router.delete(
+  "/:id([0-9a-fA-F]{24})",
+  restrictTo("instructor", "admin"),
+  deleteCourse
+);
 
 module.exports = router;

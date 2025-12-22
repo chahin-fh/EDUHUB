@@ -27,7 +27,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-
 export default function Navigation() {
   const { user, isAuthenticated, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -49,6 +48,12 @@ export default function Navigation() {
     { name: "Contact", href: "/contact", icon: MessageSquare },
   ];
 
+  // Ajouter le lien Users seulement pour les admins
+  const allNavLinks =
+    isAuthenticated && user?.role === "admin"
+      ? [...navLinks, { name: "Utilisateurs", href: "/users", icon: Users }]
+      : navLinks;
+
   return (
     <nav
       className={cn(
@@ -69,7 +74,7 @@ export default function Navigation() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navLinks.map((link) => {
+            {allNavLinks.map((link) => {
               const isActive = pathname === link.href;
               const Icon = link.icon;
               return (
@@ -95,9 +100,12 @@ export default function Navigation() {
                 <DropdownMenuTrigger asChild>
                   <button className="focus:outline-none">
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={user.avatar} alt={user.username || 'User'} />
+                      <AvatarImage
+                        src={user.avatar}
+                        alt={user.username || "User"}
+                      />
                       <AvatarFallback className="font-semibold bg-blue-500 text-white">
-                        {(user.username || 'U').charAt(0).toUpperCase()}
+                        {(user.username || "U").charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </button>
@@ -105,14 +113,21 @@ export default function Navigation() {
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="flex items-center gap-2 px-2 py-1.5">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.avatar} alt={user.username || 'User'} />
+                      <AvatarImage
+                        src={user.avatar}
+                        alt={user.username || "User"}
+                      />
                       <AvatarFallback className="font-semibold text-xs bg-blue-500 text-white">
-                        {(user.username || 'U').charAt(0).toUpperCase()}
+                        {(user.username || "U").charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">
-                      <p className="text-sm font-medium">{user.username || 'User'}</p>
-                      <p className="text-xs text-gray-500">{user.email || ''}</p>
+                      <p className="text-sm font-medium">
+                        {user.username || "User"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {user.email || ""}
+                      </p>
                     </div>
                   </div>
                   <DropdownMenuSeparator />
@@ -123,12 +138,12 @@ export default function Navigation() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                  <Link href="/profile">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </Link>
+                    <Link href="/profile">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
                   </DropdownMenuItem>
-                  {user.role === 'admin' && (
+                  {user.role === "admin" && (
                     <DropdownMenuItem asChild>
                       <Link href="/admin">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -181,7 +196,7 @@ export default function Navigation() {
       {isOpen && (
         <div className="md:hidden bg-white border-t border-gray-100">
           <div className="pt-2 pb-3 space-y-1 px-4">
-            {navLinks.map((link) => {
+            {allNavLinks.map((link) => {
               const isActive = pathname === link.href;
               const Icon = link.icon;
               return (
@@ -207,8 +222,13 @@ export default function Navigation() {
                 <div className="px-4 py-2">
                   <div className="flex items-center space-x-3 mb-3">
                     <Avatar>
-                      <AvatarImage src={user?.avatar} alt={user?.username || ''} />
-                      <AvatarFallback>{user?.username?.charAt(0).toUpperCase()}</AvatarFallback>
+                      <AvatarImage
+                        src={user?.avatar}
+                        alt={user?.username || ""}
+                      />
+                      <AvatarFallback>
+                        {user?.username?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium text-sm">{user?.username}</p>
@@ -216,12 +236,42 @@ export default function Navigation() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                     <Link href="/dashboard" className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-primary" onClick={() => setIsOpen(false)}><LayoutDashboard className="h-5 w-5" /><span>Tableau de bord</span></Link>
-                     {user?.role === 'admin' && (
-                       <Link href="/admin" className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-primary" onClick={() => setIsOpen(false)}><LayoutDashboard className="h-5 w-5" /><span>Admin Dashboard</span></Link>
-                     )}
-                     <Link href="#" className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-primary" onClick={() => setIsOpen(false)}><User className="h-5 w-5" /><span>Mon Profil</span></Link>
-                     <button onClick={() => { logout(); setIsOpen(false); }} className="w-full flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-primary"><LogOut className="h-5 w-5" /><span>Déconnexion</span></button>
+                    <Link
+                      href="/dashboard"
+                      className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-primary"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <LayoutDashboard className="h-5 w-5" />
+                      <span>Tableau de bord</span>
+                    </Link>
+                    {user?.role === "admin" && (
+                      <Link
+                        href="/admin"
+                        className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-primary"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <LayoutDashboard className="h-5 w-5" />
+                        <span>Admin Dashboard</span>
+                      </Link>
+                    )}
+                    <Link
+                      href="#"
+                      className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-primary"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <User className="h-5 w-5" />
+                      <span>Mon Profil</span>
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setIsOpen(false);
+                      }}
+                      className="w-full flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-primary"
+                    >
+                      <LogOut className="h-5 w-5" />
+                      <span>Déconnexion</span>
+                    </button>
                   </div>
                 </div>
               ) : (

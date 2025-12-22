@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import Image from "next/image"
+import img from "assets/images/Student learning with mentor.jpg"
 
 export default function HeroSection() {
   const contentRef = useRef(null)
@@ -50,14 +52,24 @@ export default function HeroSection() {
             </div>
           </div>
 
-          {/* Image */}
-          <div className="relative">
-            <div className="bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl p-8 aspect-square flex items-center justify-center animate-pulse-glow">
-              <div className="text-center">
-                <div className="text-6xl mb-4 animate-bounce">👨‍🎓</div>
-                <p className="text-muted-foreground">Student learning with mentor</p>
-              </div>
+          {/* ================= IMAGE ================= */}
+          <div className="relative w-full h-[420px] md:h-[500px] flex items-center justify-center">
+            
+            {/* Glow background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl blur-2xl" />
+
+            {/* Image container */}
+            <div className="relative z-10 w-full max-w-md aspect-square">
+              <Image
+                src={img}
+                alt="Student learning with mentor"
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                className="object-contain drop-shadow-2xl"
+                priority
+              />
             </div>
+
           </div>
         </div>
       </div>
