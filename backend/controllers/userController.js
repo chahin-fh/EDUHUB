@@ -22,7 +22,11 @@ exports.updateProfile = async (req, res) => {
     if (phone !== undefined) user.phone = phone;
     if (birthdate !== undefined) user.birthdate = birthdate;
     if (about !== undefined) user.bio = about;
-    if (subjects !== undefined) user.expertise = subjects; // Map subjects to expertise field
+    if (subjects !== undefined) {
+      // Save subjects into the monitorProfile.expertise array defined in the User schema
+      if (!user.monitorProfile) user.monitorProfile = {};
+      user.monitorProfile.expertise = subjects;
+    }
 
     await user.save();
 

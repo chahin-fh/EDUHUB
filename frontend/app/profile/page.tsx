@@ -242,12 +242,6 @@ export default function ProfilePage() {
                         <div className="flex flex-wrap gap-2 justify-center">
                           <Badge
                             variant="secondary"
-                            className="bg-blue-100 text-blue-800 border-blue-200"
-                          >
-                            Étudiant
-                          </Badge>
-                          <Badge
-                            variant="secondary"
                             className="bg-green-100 text-green-800 border-green-200"
                           >
                             Actif

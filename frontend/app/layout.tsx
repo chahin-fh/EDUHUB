@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import Navigation from "@/components/navigation";
 import { AuthProvider } from "@/contexts/AuthContext";
+import ChatWidget from "@/components/chat-widget";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,6 +32,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navigation />
           <main className="flex-1 pt-16 md:pt-20">{children}</main>
+          <ChatWidget />
           <Analytics />
         </AuthProvider>
       </body>

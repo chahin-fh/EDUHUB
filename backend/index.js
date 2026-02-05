@@ -49,7 +49,7 @@ const connectDB = async () => {
     const candidates = [
       process.env.MONGODB_URI,
       process.env.MONGO_URL,
-      "mongodb://localhost:27017/eduhub",
+      "mongodb://localhost:27017/test",
     ].filter(Boolean);
 
     if (candidates.length === 0) {
@@ -86,6 +86,7 @@ const usersRoutes = require("./routes/users");
 const monitorRoutes = require("./routes/monitor");
 const usersListRoutes = require("./routes/usersList");
 const contactRoutes = require("./routes/contact");
+const chatRoutes = require("./routes/chat");
 
 app.use("/api/subjects", require("./routes/subjects"));
 
@@ -98,6 +99,7 @@ app.use("/api/users", usersRoutes);
 app.use("/api/monitor", monitorRoutes);
 app.use("/api/usersList", usersListRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/chat", chatRoutes);
 
 // Serve uploaded files
 app.use("/uploads", express.static("uploads"));
