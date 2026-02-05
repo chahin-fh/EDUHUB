@@ -1,18 +1,16 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema(
   {
     conversation: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Conversation",
+      ref: 'Conversation',
       required: true,
-      index: true,
     },
     sender: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
-      index: true,
     },
     text: {
       type: String,
@@ -22,7 +20,7 @@ const messageSchema = new mongoose.Schema(
     readBy: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
       },
     ],
   },
@@ -33,6 +31,6 @@ const messageSchema = new mongoose.Schema(
 
 messageSchema.index({ conversation: 1, createdAt: -1 });
 
-const Message = mongoose.model("Message", messageSchema);
+const Message = mongoose.model('Message', messageSchema);
 
 module.exports = Message;

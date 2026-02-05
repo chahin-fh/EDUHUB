@@ -1,8 +1,0 @@
-MONGO_URL=mongodb://localhost:27017
-JWT_SECRET=your_jwt_secret_key_here_change_in_production
-PORT=5000
-NODE_ENV=development
-FRONTEND_URL=http://localhost:3000
-# Google OAuth Configuration
-GOOGLE_CLIENT_ID=1082568836785-gg84dqrkg93etiqo7jekjv4bjusd0nbm.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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

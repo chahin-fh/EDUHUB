@@ -61,6 +61,49 @@ exports.searchUsers = async (req, res, next) => {
   }
 };
 
+exports.listUsers = async (req, res, next) => {
+  try {
+    const q = (req.query.q || "").toString().trim();
+    const page = Math.max(parseInt(req.query.page || "1", 10) || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit || "20", 10) || 20, 50);
+    const skip = (page - 1) * limit;
+
+    const query = {
+      _id: { $ne: req.user._id },
+      isActive: true,
+    };
+
+    if (q) {
+      query.$or = [
+        { name: { $regex: q, $options: "i" } },
+        { username: { $regex: q, $options: "i" } },
+        { email: { $regex: q, $options: "i" } },
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      User.find(query)
+        .select("name username email avatar")
+        .sort({ username: 1, name: 1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      User.countDocuments(query),
+    ]);
+
+    return res.json({
+      users,
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore: skip + users.length < total,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 exports.getConversations = async (req, res, next) => {
   try {
     const conversations = await Conversation.find({

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat API Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+        .user-card {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .user-card h3 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+        }
+        .user-card p {
+            margin: 5px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Chat API Tester</h1>
+        
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="admin@eduhub.com" value="admin@eduhub.com">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="Enter password" value="azerty01">
+        </div>
+        
+        <button onclick="login()">1. Login & Get Token</button>
+        
+        <div class="form-group" style="margin-top: 30px;">
+            <label for="token">Auth Token (auto-filled after login):</label>
+            <input type="text" id="token" placeholder="Token will appear here after login">
+        </div>
+        
+        <div class="form-group">
+            <label for="searchQuery">Search Query (optional):</label>
+            <input type="text" id="searchQuery" placeholder="Leave empty to get all users">
+        </div>
+        
+        <button onclick="testChatUsers()">2. Test /api/chat/users</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000';
+        
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = '<div class="result">Logging in...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Login failed');
+                }
+                
+                const token = data.token;
+                document.getElementById('token').value = token;
+                localStorage.setItem('authToken', token);
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <h3>✅ Login Successful!</h3>
+                        <p><strong>User:</strong> ${data.user.name || data.user.email}</p>
+                        <p><strong>Role:</strong> ${data.user.role}</p>
+                        <p><strong>Token:</strong> ${token.substring(0, 20)}...</p>
+                        <p style="margin-top: 15px;">Now click "Test /api/chat/users" to fetch users!</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Login Failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testChatUsers() {
+            const token = document.getElementById('token').value;
+            const searchQuery = document.getElementById('searchQuery').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!token) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ No Token</h3>
+                        <p>Please login first to get an auth token!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="result">Fetching users...</div>';
+            
+            try {
+                const url = `${API_BASE}/api/chat/users?page=1&limit=20&q=${encodeURIComponent(searchQuery)}`;
+                console.log('Fetching:', url);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                console.log('Response:', data);
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Request failed');
+                }
+                
+                const users = data.users || [];
+                const pagination = data.pagination || {};
+                
+                let usersHtml = '';
+                if (users.length === 0) {
+                    usersHtml = '<p style="color: #999; text-align: center; padding: 20px;">No users found</p>';
+                } else {
+                    usersHtml = users.map(user => `
+                        <div class="user-card">
+                            <h3>${user.name || user.username || 'No name'}</h3>
+                            <p><strong>Email:</strong> ${user.email || 'N/A'}</p>
+                            <p><strong>Username:</strong> ${user.username || 'N/A'}</p>
+                            <p><strong>ID:</strong> ${user._id}</p>
+                        </div>
+                    `).join('');
+                }
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <h3>✅ Success! Found ${users.length} user(s)</h3>
+                        <p><strong>Page:</strong> ${pagination.page || 1}</p>
+                        <p><strong>Total:</strong> ${pagination.total || users.length}</p>
+                        <p><strong>Has More:</strong> ${pagination.hasMore ? 'Yes' : 'No'}</p>
+                        
+                        <h4 style="margin-top: 20px;">Users:</h4>
+                        ${usersHtml}
+                        
+                        <details style="margin-top: 20px;">
+                            <summary style="cursor: pointer; color: #007bff;">Show Raw JSON Response</summary>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Request Failed</h3>
+                        <p>${error.message}</p>
+                        <p style="margin-top: 15px;"><strong>Possible causes:</strong></p>
+                        <ul>
+                            <li>Backend server not running (check http://localhost:5000)</li>
+                            <li>Invalid or expired token (try logging in again)</li>
+                            <li>CORS issue (check browser console)</li>
+                            <li>Network error</li>
+                        </ul>
+                    </div>
+                `;
+            }
+        }
+        
+        // Auto-fill token from localStorage if available
+        window.addEventListener('load', () => {
+            const savedToken = localStorage.getItem('authToken');
+            if (savedToken) {
+                document.getElementById('token').value = savedToken;
+            }
+        });
+    </script>
+</body>
+</html>

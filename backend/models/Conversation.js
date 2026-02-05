@@ -1,25 +1,26 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const conversationSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["direct"],
-      default: "direct",
+      enum: ['direct', 'group'],
+      default: 'direct',
     },
     participants: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
         required: true,
       },
     ],
     lastMessage: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Message",
+      ref: 'Message',
     },
     lastMessageAt: {
       type: Date,
+      default: Date.now,
     },
   },
   {
@@ -28,7 +29,8 @@ const conversationSchema = new mongoose.Schema(
 );
 
 conversationSchema.index({ participants: 1 });
+conversationSchema.index({ lastMessageAt: -1 });
 
-const Conversation = mongoose.model("Conversation", conversationSchema);
+const Conversation = mongoose.model('Conversation', conversationSchema);
 
 module.exports = Conversation;

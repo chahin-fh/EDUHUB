@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   MessageCircle,
+  Plus,
   Search,
   Send,
   X,
@@ -14,6 +15,12 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -105,6 +112,15 @@ export default function ChatWidget() {
   const [messageText, setMessageText] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  const [isUserPickerOpen, setIsUserPickerOpen] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [pickerUsers, setPickerUsers] = useState<UserLite[]>([]);
+  const [pickerPage, setPickerPage] = useState(1);
+  const [pickerHasMore, setPickerHasMore] = useState(false);
+  const [isPickerLoading, setIsPickerLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const selectedConversation = useMemo(() => {
@@ -124,18 +140,83 @@ export default function ChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const requestNotificationPermission = async () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      const permission = await Notification.requestPermission();
+      setNotificationsEnabled(permission === "granted");
+    } else if (Notification.permission === "granted") {
+      setNotificationsEnabled(true);
+    }
+  };
+
+  const showNotification = (title: string, body: string) => {
+    if (notificationsEnabled && "Notification" in window && Notification.permission === "granted") {
+      new Notification(title, {
+        body,
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
+      });
+    }
+  };
+
+  const calculateUnreadCount = () => {
+    let count = 0;
+    conversations.forEach((conv) => {
+      if (
+        conv.lastMessage &&
+        conv.lastMessage.sender._id !== currentUserId &&
+        conv._id !== selectedConversationId
+      ) {
+        count++;
+      }
+    });
+    return count;
+  };
+
   const refreshConversations = async () => {
     const data = await apiFetch<{ conversations: ConversationType[] }>(
       "/api/chat/conversations"
     );
-    setConversations(data.conversations || []);
+    const newConversations = data.conversations || [];
+    
+    // Check for new messages
+    if (conversations.length > 0 && !isOpen) {
+      newConversations.forEach((newConv) => {
+        const oldConv = conversations.find((c) => c._id === newConv._id);
+        if (
+          newConv.lastMessage &&
+          oldConv?.lastMessage?._id !== newConv.lastMessage._id &&
+          newConv.lastMessage.sender._id !== currentUserId
+        ) {
+          const sender = newConv.lastMessage.sender;
+          const senderName = getUserDisplayName(sender);
+          showNotification(
+            `Nouveau message de ${senderName}`,
+            newConv.lastMessage.text
+          );
+        }
+      });
+    }
+    
+    setConversations(newConversations);
   };
 
   const refreshMessages = async (conversationId: string) => {
     const data = await apiFetch<{ messages: MessageType[] }>(
       `/api/chat/conversations/${conversationId}/messages?limit=50`
     );
-    setMessages(data.messages || []);
+    const newMessages = data.messages || [];
+    
+    // Check for new messages in current conversation
+    if (messages.length > 0 && newMessages.length > messages.length) {
+      const newMsg = newMessages[newMessages.length - 1];
+      if (newMsg.sender._id !== currentUserId && !isOpen) {
+        const senderName = getUserDisplayName(newMsg.sender);
+        showNotification(`Nouveau message de ${senderName}`, newMsg.text);
+      }
+    }
+    
+    setMessages(newMessages);
   };
 
   const runUserSearch = async (q: string) => {
@@ -144,6 +225,42 @@ export default function ChatWidget() {
     );
     setSearchResults(data.users || []);
   };
+
+  const fetchPickerUsers = useCallback(
+    async (opts?: { reset?: boolean }) => {
+      const reset = opts?.reset ?? false;
+
+      const q = pickerQuery.trim();
+      const nextPage = reset ? 1 : pickerPage;
+
+      setIsPickerLoading(true);
+      try {
+        const data = await apiFetch<{
+          users: UserLite[];
+          pagination?: {
+            page: number;
+            limit: number;
+            total: number;
+            hasMore: boolean;
+          };
+        }>(
+          `/api/chat/users?page=${nextPage}&limit=20&q=${encodeURIComponent(q)}`
+        );
+
+        const users = Array.isArray(data.users) ? data.users : [];
+        const hasMore = !!data.pagination?.hasMore;
+
+        setPickerUsers((prev) => (reset ? users : [...prev, ...users]));
+        setPickerHasMore(hasMore);
+        setPickerPage(nextPage + 1);
+      } catch (error) {
+        console.error('[ChatWidget] Error fetching picker users:', error);
+      } finally {
+        setIsPickerLoading(false);
+      }
+    },
+    [pickerPage, pickerQuery]
+  );
 
   const openConversationWith = async (userId: string) => {
     const data = await apiFetch<{ conversation: ConversationType }>(
@@ -161,6 +278,7 @@ export default function ChatWidget() {
     await refreshMessages(conv._id);
     setSearchQuery("");
     setSearchResults([]);
+    setIsUserPickerOpen(false);
   };
 
   const openConversation = async (conversationId: string) => {
@@ -195,7 +313,8 @@ export default function ChatWidget() {
       return;
     }
 
-    if (!isOpen) return;
+    // Request notification permission on mount
+    requestNotificationPermission();
 
     setError(null);
     refreshConversations().catch((e) => setError(e.message));
@@ -207,7 +326,7 @@ export default function ChatWidget() {
     return () => {
       window.clearInterval(id);
     };
-  }, [isAuthenticated, isOpen]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated || !isOpen || !selectedConversationId) return;
@@ -240,84 +359,143 @@ export default function ChatWidget() {
   }, [isAuthenticated, isOpen, searchQuery]);
 
   useEffect(() => {
+    if (!isAuthenticated || !isOpen || !isUserPickerOpen) return;
+
+    setPickerUsers([]);
+    setPickerPage(1);
+    setPickerHasMore(false);
+    fetchPickerUsers({ reset: true }).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isOpen, isUserPickerOpen]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isOpen || !isUserPickerOpen) return;
+
+    const timeout = window.setTimeout(() => {
+      setPickerUsers([]);
+      setPickerPage(1);
+      setPickerHasMore(false);
+      fetchPickerUsers({ reset: true }).catch(() => undefined);
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isOpen, isUserPickerOpen, pickerQuery]);
+
+  useEffect(() => {
     if (!isOpen || view !== "chat") return;
     scrollToBottom();
   }, [isOpen, view, messages.length]);
+
+  useEffect(() => {
+    const count = calculateUnreadCount();
+    setUnreadCount(count);
+  }, [conversations, selectedConversationId]);
 
   if (!isAuthenticated) {
     return null;
   }
 
   return (
-    <>
-      {!isOpen && (
-        <Button
-          type="button"
-          className="fixed bottom-6 left-6 z-50 h-12 w-12 rounded-full shadow-lg"
-          onClick={() => {
-            setIsOpen(true);
-            setView("list");
-          }}
-        >
-          <MessageCircle className="h-5 w-5" />
-        </Button>
-      )}
+    <div className="pointer-events-none fixed inset-0 z-[9999]">
+      <div className="pointer-events-auto">
+        {!isOpen && (
+          <Button
+            type="button"
+            className="fixed left-6 top-1/2 -translate-y-1/2 z-[9999] h-14 w-14 rounded-full shadow-2xl hover:shadow-3xl transition-all hover:scale-110 relative"
+            onClick={() => {
+              setIsOpen(true);
+              setView("list");
+            }}
+          >
+            <MessageCircle className="h-6 w-6" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold shadow-lg animate-pulse">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Button>
+        )}
 
-      {isOpen && (
-        <div className="fixed bottom-6 left-6 z-50 w-[360px] max-w-[calc(100vw-3rem)]">
-          <Card className="shadow-2xl">
-            <CardHeader className="p-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  {view === "chat" ? (
+        {isOpen && (
+          <div className="fixed left-20 top-1/2 -translate-y-1/2 z-[9999] w-[360px] max-w-[calc(100vw-3rem)]">
+            <Card className="shadow-2xl border-2">
+              <CardHeader className="p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {view === "chat" ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setView("list");
+                          setSelectedConversationId(null);
+                          setMessages([]);
+                        }}
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <div className="h-9 w-9" />
+                    )}
+
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold">
+                        {view === "chat" && otherParticipant
+                          ? getUserDisplayName(otherParticipant)
+                          : "Messages"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {view === "chat" ? "Discussion" : "Rechercher ou discuter"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {view === "list" && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setIsUserPickerOpen(true);
+                          setPickerQuery("");
+                          setPickerUsers([]);
+                          setPickerPage(1);
+                          setPickerHasMore(false);
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => {
+                        setIsOpen(false);
                         setView("list");
                         setSelectedConversationId(null);
                         setMessages([]);
+                        setSearchQuery("");
+                        setSearchResults([]);
+                        setError(null);
+                        setIsUserPickerOpen(false);
+                        setPickerQuery("");
+                        setPickerUsers([]);
+                        setPickerPage(1);
+                        setPickerHasMore(false);
                       }}
                     >
-                      <ArrowLeft className="h-4 w-4" />
+                      <X className="h-4 w-4" />
                     </Button>
-                  ) : (
-                    <div className="h-9 w-9" />
-                  )}
-
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold">
-                      {view === "chat" && otherParticipant
-                        ? getUserDisplayName(otherParticipant)
-                        : "Messages"}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {view === "chat" ? "Discussion" : "Rechercher ou discuter"}
-                    </span>
                   </div>
                 </div>
+              </CardHeader>
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setIsOpen(false);
-                    setView("list");
-                    setSelectedConversationId(null);
-                    setMessages([]);
-                    setSearchQuery("");
-                    setSearchResults([]);
-                    setError(null);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-3 pt-0">
+              <CardContent className="p-3 pt-0">
               {error && (
                 <div className="mb-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   {error}
@@ -396,13 +574,17 @@ export default function ChatWidget() {
 
                             const title = other ? getUserDisplayName(other) : "Conversation";
                             const subtitle = c.lastMessage?.text || "";
+                            const isUnread = c.lastMessage?.sender._id !== currentUserId && c._id !== selectedConversationId;
 
                             return (
                               <button
                                 key={c._id}
                                 type="button"
                                 onClick={() => openConversation(c._id)}
-                                className="w-full rounded-md px-2 py-2 text-left hover:bg-muted transition-colors flex items-center gap-2"
+                                className={cn(
+                                  "w-full rounded-md px-2 py-2 text-left hover:bg-muted transition-colors flex items-center gap-2",
+                                  isUnread && "bg-blue-50 hover:bg-blue-100"
+                                )}
                               >
                                 <Avatar className="h-8 w-8">
                                   <AvatarImage src={other?.avatar} />
@@ -411,13 +593,22 @@ export default function ChatWidget() {
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="min-w-0 flex-1">
-                                  <div className="truncate text-sm font-medium">
+                                  <div className={cn(
+                                    "truncate text-sm",
+                                    isUnread ? "font-bold" : "font-medium"
+                                  )}>
                                     {title}
                                   </div>
-                                  <div className="truncate text-xs text-muted-foreground">
+                                  <div className={cn(
+                                    "truncate text-xs",
+                                    isUnread ? "text-blue-600 font-medium" : "text-muted-foreground"
+                                  )}>
                                     {subtitle}
                                   </div>
                                 </div>
+                                {isUnread && (
+                                  <div className="h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" />
+                                )}
                               </button>
                             );
                           })
@@ -487,14 +678,83 @@ export default function ChatWidget() {
                   </div>
                 </div>
               )}
-
-              <div className="mt-2 text-[11px] text-muted-foreground">
-                {isAuthenticated && user ? "" : ""}
-              </div>
             </CardContent>
-          </Card>
-        </div>
-      )}
-    </>
+            </Card>
+          </div>
+        )}
+
+      <Dialog open={isUserPickerOpen} onOpenChange={setIsUserPickerOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Démarrer une discussion</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={pickerQuery}
+                onChange={(e) => setPickerQuery(e.target.value)}
+                placeholder="Rechercher un utilisateur..."
+                className="pl-8"
+              />
+            </div>
+
+            <div className="rounded-md border">
+              <ScrollArea className="h-72">
+                <div className="p-1">
+                  {pickerUsers.length === 0 && !isPickerLoading ? (
+                    <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                      Aucun utilisateur
+                    </div>
+                  ) : (
+                    pickerUsers.map((u) => (
+                      <button
+                        key={u._id}
+                        type="button"
+                        onClick={() => openConversationWith(u._id)}
+                        className="w-full rounded-md px-2 py-2 text-left hover:bg-muted transition-colors flex items-center gap-2"
+                      >
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={u.avatar} />
+                          <AvatarFallback>{getUserInitial(u)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium">
+                            {getUserDisplayName(u)}
+                          </div>
+                          <div className="truncate text-xs text-muted-foreground">
+                            {u.email || ""}
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+
+                  {isPickerLoading && (
+                    <div className="px-3 py-3 text-center text-sm text-muted-foreground">
+                      Chargement...
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+
+            {pickerHasMore && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={isPickerLoading}
+                onClick={() => fetchPickerUsers({ reset: false }).catch(() => undefined)}
+              >
+                Charger plus
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      </div>
+    </div>
   );
 }
