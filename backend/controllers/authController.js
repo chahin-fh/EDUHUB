@@ -23,6 +23,10 @@ const generateToken = (id) => {
 
 // Create email transporter
 const createTransporter = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    return null;
+  }
+
   return nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -102,6 +106,9 @@ exports.registerUser = async (req, res) => {
 
       try {
         const transporter = createTransporter();
+        if (!transporter) {
+          throw new Error("Email service is not configured");
+        }
         const mailOptions = {
           from: process.env.EMAIL_USER,
           to: user.email,
@@ -235,6 +242,11 @@ exports.forgotPassword = async (req, res) => {
 
     // Send email
     const transporter = createTransporter();
+    if (!transporter) {
+      return res.status(503).json({
+        message: "Email service is not configured",
+      });
+    }
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: user.email,
@@ -304,6 +316,11 @@ exports.resetPassword = async (req, res) => {
 `;
 
     const transporter = createTransporter();
+    if (!transporter) {
+      return res.status(503).json({
+        message: "Email service is not configured",
+      });
+    }
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: user.email,
@@ -417,6 +434,11 @@ exports.resendVerificationEmail = async (req, res) => {
 `;
 
     const transporter = createTransporter();
+    if (!transporter) {
+      return res.status(503).json({
+        message: "Email service is not configured",
+      });
+    }
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: user.email,

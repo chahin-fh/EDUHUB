@@ -397,12 +397,12 @@ export default function ChatWidget() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[9999]">
-      <div className="pointer-events-auto">
+    <div className="fixed bottom-6 right-6 z-[9999] pointer-events-none">
+      <div className="relative">
         {!isOpen && (
           <Button
             type="button"
-            className="fixed left-6 top-1/2 -translate-y-1/2 z-[9999] h-14 w-14 rounded-full shadow-2xl hover:shadow-3xl transition-all hover:scale-110 relative"
+            className="pointer-events-auto h-14 w-14 rounded-full shadow-2xl hover:shadow-3xl transition-all hover:scale-110 relative"
             onClick={() => {
               setIsOpen(true);
               setView("list");
@@ -418,7 +418,7 @@ export default function ChatWidget() {
         )}
 
         {isOpen && (
-          <div className="fixed left-20 top-1/2 -translate-y-1/2 z-[9999] w-[360px] max-w-[calc(100vw-3rem)]">
+          <div className="pointer-events-auto absolute bottom-16 right-0 w-[360px] max-w-[calc(100vw-3rem)]">
             <Card className="shadow-2xl border-2">
               <CardHeader className="p-3">
                 <div className="flex items-center justify-between gap-2">
@@ -683,6 +683,8 @@ export default function ChatWidget() {
           </div>
         )}
 
+      </div>
+
       <Dialog open={isUserPickerOpen} onOpenChange={setIsUserPickerOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -754,7 +756,6 @@ export default function ChatWidget() {
           </div>
         </DialogContent>
       </Dialog>
-      </div>
     </div>
   );
 }
