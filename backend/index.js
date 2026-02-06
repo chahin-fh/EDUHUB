@@ -60,7 +60,7 @@ const connectDB = async () => {
     for (const uri of candidates) {
       try {
         await mongoose.connect(uri);
-        console.log("✓ Connected to MongoDB successfully");
+        console.log("✓ Connected to MongoDB successfully");  
         return;
       } catch (err) {
         lastError = err;
