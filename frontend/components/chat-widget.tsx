@@ -38,6 +38,7 @@ type MessageType = {
   text: string;
   sender: UserLite;
   createdAt: string;
+  readBy?: string[];
 };
 
 type ConversationType = {
@@ -165,7 +166,7 @@ export default function ChatWidget() {
       if (
         conv.lastMessage &&
         conv.lastMessage.sender._id !== currentUserId &&
-        conv._id !== selectedConversationId
+        !conv.lastMessage.readBy?.includes(currentUserId)
       ) {
         count++;
       }
@@ -217,6 +218,24 @@ export default function ChatWidget() {
     }
     
     setMessages(newMessages);
+
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c._id !== conversationId) return c;
+
+        if (!c.lastMessage) return c;
+        if (c.lastMessage.sender?._id?.toString() === currentUserId) return c;
+        if (c.lastMessage.readBy?.includes(currentUserId)) return c;
+
+        return {
+          ...c,
+          lastMessage: {
+            ...c.lastMessage,
+            readBy: [...(c.lastMessage.readBy || []), currentUserId],
+          },
+        };
+      })
+    );
   };
 
   const runUserSearch = async (q: string) => {
@@ -574,7 +593,11 @@ export default function ChatWidget() {
 
                             const title = other ? getUserDisplayName(other) : "Conversation";
                             const subtitle = c.lastMessage?.text || "";
-                            const isUnread = c.lastMessage?.sender._id !== currentUserId && c._id !== selectedConversationId;
+                            const isUnread =
+                              !!c.lastMessage &&
+                              c.lastMessage.sender._id !== currentUserId &&
+                              !c.lastMessage.readBy?.includes(currentUserId) &&
+                              c._id !== selectedConversationId;
 
                             return (
                               <button

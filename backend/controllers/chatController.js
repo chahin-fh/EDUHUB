@@ -115,6 +115,7 @@ exports.getConversations = async (req, res, next) => {
       })
       .populate({
         path: "lastMessage",
+        select: "text sender createdAt readBy",
         populate: { path: "sender", select: "name username email avatar" },
       })
       .sort({ lastMessageAt: -1, updatedAt: -1 });
@@ -179,6 +180,17 @@ exports.getMessages = async (req, res, next) => {
   try {
     const conversationId = ensureObjectId(req.params.id);
     await ensureConversationAccess(conversationId, req.user._id);
+
+    await Message.updateMany(
+      {
+        conversation: conversationId,
+        sender: { $ne: req.user._id },
+        readBy: { $ne: req.user._id },
+      },
+      {
+        $addToSet: { readBy: req.user._id },
+      }
+    );
 
     const limit = Math.min(parseInt(req.query.limit || "50", 10) || 50, 100);
     const before = req.query.before ? new Date(req.query.before) : null;

@@ -277,59 +277,6 @@ export default function DashboardPage() {
                 </Button>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Tuteurs récents</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    {
-                      name: "Sophie Martin",
-                      subject: "Maths",
-                      avatar: "/avatars/sophie.jpg",
-                    },
-                    {
-                      name: "Thomas Leroy",
-                      subject: "Physique",
-                      avatar: "/avatars/thomas.jpg",
-                    },
-                    {
-                      name: "Emma Dubois",
-                      subject: "Chimie",
-                      avatar: "/avatars/emma.jpg",
-                    },
-                  ].map((tutor, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
-                    >
-                      <Avatar className="h-10 w-10 mr-3">
-                        <AvatarImage src={tutor.avatar} alt={tutor.name} />
-                        <AvatarFallback>
-                          {tutor.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium text-sm">{tutor.name}</p>
-                        <p className="text-xs text-gray-500">{tutor.subject}</p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="ml-auto h-8 w-8"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
