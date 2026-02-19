@@ -6,13 +6,13 @@ const cors = require('cors');
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limite par IP
-  message: 'Trop de requêtes, réessayez plus tard'
+  message: { message: 'Trop de requêtes, réessayez plus tard' }
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5, // 5 tentatives de connexion
-  message: 'Trop de tentatives, réessayez dans 15 minutes'
+  max: 10, // Increased slightly and returning JSON
+  message: { message: 'Trop de tentatives, réessayez dans 15 minutes' }
 });
 
 // CORS configuration

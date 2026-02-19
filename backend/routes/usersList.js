@@ -19,10 +19,10 @@ router.get("/public", async (req, res) => {
       sortOrder = "desc",
     } = req.query;
 
-    // Build query - only show verified monitors
+    // Build query - show all active monitors (even if not verified for now to fix visibility issue)
     let query = {
       isMonitor: true,
-      "monitorProfile.verified": true,
+      // "monitorProfile.verified": true, // User reported they don't show up, likely not verified yet
       isActive: true,
     };
 

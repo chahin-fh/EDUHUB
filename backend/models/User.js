@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema(
     // Moniteur capabilities (peut être activé pour les users)
     isMonitor: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     monitorProfile: {
       expertise: [String],

@@ -328,7 +328,7 @@ exports.updateProgress = async (req, res) => {
 exports.getAllCourses = async (req, res) => {
   try {
     const courses = await Course.find({
-      status: { $in: ["active", "published"] },
+      status: { $in: ["active", "published", "draft", "pending"] },
     })
       .populate("uploadedBy", "username name email")
       .populate("instructor", "username name email")

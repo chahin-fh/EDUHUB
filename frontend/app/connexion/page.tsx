@@ -49,10 +49,11 @@ export default function LoginPage() {
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      const isJson = response.headers.get("content-type")?.includes("application/json");
+      const data = isJson ? await response.json() : null;
 
       if (!response.ok) {
-        throw new Error(data.message || "Email ou mot de passe incorrect");
+        throw new Error(data?.message || response.statusText || "Email ou mot de passe incorrect");
       }
 
       const userRes = await fetch("http://localhost:5000/api/auth/me", {
@@ -66,7 +67,7 @@ export default function LoginPage() {
       }
 
       const userData = await userRes.json();
-      
+
       // Use the login function from AuthContext
       login(data.token, userData);
 
@@ -166,8 +167,8 @@ export default function LoginPage() {
                 type="button"
                 disabled={isLoading}
                 onClick={() =>
-                  (window.location.href =
-                    "http://localhost:5000/api/auth/google")
+                (window.location.href =
+                  "http://localhost:5000/api/auth/google")
                 }
               >
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
