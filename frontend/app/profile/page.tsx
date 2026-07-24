@@ -29,6 +29,8 @@ import {
   Award,
   Settings,
   Clock,
+  Star,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -47,18 +49,25 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState("");
   const [birthdate, setBirthdate] = useState("");
   const [about, setAbout] = useState("");
-  const [subjects, setSubjects] = useState<string[]>([]);
+  const [subjects, setSubjects] = useState<
+    { subjectId: string; subjectName: string; level: string }[]
+  >([]);
+  const [learningGoals, setLearningGoals] = useState<
+    { subjectId: string; subjectName: string; level: string }[]
+  >([]);
   const [isSaving, setIsSaving] = useState(false);
   const [availableSubjects, setAvailableSubjects] = useState<
     { _id: string; name: string }[]
   >([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [learnSearchQuery, setLearnSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedSubject, setSelectedSubject] = useState("");
 
+  const levels = ["Débutant", "Intermédiaire", "Avancé"];
+
   const handleSubjectClick = (subject: string) => {
     setSelectedSubject(subject);
-    // Switch to explore tab if not already there
     if (activeTab !== "explore") {
       setActiveTab("explore");
     }
@@ -72,7 +81,32 @@ export default function ProfilePage() {
       setPhone(user.phone || "");
       setBirthdate(user.birthdate || "");
       setAbout(user.about || "");
-      setSubjects(user.expertise || []); // Use expertise field instead of subjects
+
+      // Load expertise from user
+      if (user.monitorProfile?.expertise) {
+        setSubjects(
+          user.monitorProfile.expertise.map((e) => ({
+            subjectId:
+              typeof e.subject === "object" ? e.subject._id : e.subject,
+            subjectName:
+              typeof e.subject === "object" ? e.subject.name : e.subject,
+            level: e.level || "Intermédiaire",
+          }))
+        );
+      }
+
+      // Load learning goals
+      if (user.learningGoals) {
+        setLearningGoals(
+          user.learningGoals.map((g) => ({
+            subjectId:
+              typeof g.subject === "object" ? g.subject._id : g.subject,
+            subjectName:
+              typeof g.subject === "object" ? g.subject.name : g.subject,
+            level: g.level || "Débutant",
+          }))
+        );
+      }
     }
   }, [user]);
 
@@ -91,18 +125,44 @@ export default function ProfilePage() {
     fetchSubjects();
   }, []);
 
-  const handleSubjectChange = (subject: string) => {
-    setSubjects((prev) =>
-      prev.includes(subject)
-        ? prev.filter((s) => s !== subject)
-        : [...prev, subject]
-    );
+  const handleTeachingSubjectChange = (subject: {
+    subjectId: string;
+    subjectName: string;
+    level: string;
+  }) => {
+    setSubjects((prev) => {
+      const exists = prev.find((s) => s.subjectId === subject.subjectId);
+      if (exists) {
+        return prev.filter((s) => s.subjectId !== subject.subjectId);
+      }
+      return [...prev, subject];
+    });
+  };
+
+  const handleLearningGoalChange = (goal: {
+    subjectId: string;
+    subjectName: string;
+    level: string;
+  }) => {
+    setLearningGoals((prev) => {
+      const exists = prev.find((s) => s.subjectId === goal.subjectId);
+      if (exists) {
+        return prev.filter((s) => s.subjectId !== goal.subjectId);
+      }
+      return [...prev, goal];
+    });
   };
 
   const filteredSubjects = availableSubjects.filter(
     (subject) =>
       subject.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !subjects.includes(subject.name)
+      !subjects.some((s) => s.subjectId === subject._id)
+  );
+
+  const filteredLearnSubjects = availableSubjects.filter(
+    (subject) =>
+      subject.name.toLowerCase().includes(learnSearchQuery.toLowerCase()) &&
+      !learningGoals.some((g) => g.subjectId === subject._id)
   );
 
   const handleSaveChanges = async () => {
@@ -115,7 +175,16 @@ export default function ProfilePage() {
         phone,
         birthdate,
         about,
-        expertise: subjects, // Map subjects to expertise field
+        // Send expertise as array of { subject: ObjectId, level: string }
+        expertise: subjects.map((s) => ({
+          subject: s.subjectId,
+          level: s.level,
+        })),
+        // Send learning goals
+        learningGoals: learningGoals.map((g) => ({
+          subject: g.subjectId,
+          level: g.level,
+        })),
       };
 
       const response = await fetch("http://localhost:5000/api/users/profile", {
@@ -132,7 +201,8 @@ export default function ProfilePage() {
         updateUser(data.user);
         console.log("Profil mis à jour avec succès");
       } else {
-        console.error("Erreur lors de la mise à jour du profil");
+        const errData = await response.json();
+        console.error("Erreur lors de la mise à jour du profil:", errData);
       }
     } catch (error) {
       console.error("Erreur:", error);
@@ -442,14 +512,15 @@ export default function ProfilePage() {
 
             {/* Academic Tab */}
             <TabsContent value="academic" className="space-y-6">
+              {/* Teaching Subjects */}
               <Card className="bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-blue-600" />
-                    Matières enseignées
+                    <Star className="h-5 w-5 text-blue-600" />
+                    Matières que j&apos;enseigne
                   </CardTitle>
                   <CardDescription>
-                    Sélectionnez vos domaines d&apos;expertise
+                    Sélectionnez les matières que vous maîtrisez et pouvez enseigner
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -463,14 +534,38 @@ export default function ProfilePage() {
                         {subjects.length > 0 ? (
                           subjects.map((subject) => (
                             <Badge
-                              key={subject}
+                              key={subject.subjectId}
                               variant="secondary"
                               className="pl-2.5 pr-1.5 py-1 h-8 text-sm bg-white border shadow-sm hover:bg-slate-100 transition-all flex items-center gap-1.5"
                             >
-                              {subject}
+                              {subject.subjectName}
+                              <span className="text-xs text-gray-500 ml-1">({subject.level})</span>
+                              <select
+                                value={subject.level}
+                                onChange={(e) => {
+                                  const newLevel = e.target.value;
+                                  setSubjects((prev) =>
+                                    prev.map((s) =>
+                                      s.subjectId === subject.subjectId
+                                        ? { ...s, level: newLevel }
+                                        : s
+                                    )
+                                  );
+                                }}
+                                className="ml-1 text-xs border-0 bg-transparent focus:outline-none cursor-pointer"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {levels.map((l) => (
+                                  <option key={l} value={l}>
+                                    {l}
+                                  </option>
+                                ))}
+                              </select>
                               <div
                                 className="h-4 w-4 rounded-full hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
-                                onClick={() => handleSubjectChange(subject)}
+                                onClick={() =>
+                                  handleTeachingSubjectChange(subject)
+                                }
                               >
                                 <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
                               </div>
@@ -505,12 +600,124 @@ export default function ProfilePage() {
                               <div
                                 key={subject._id}
                                 onClick={() =>
-                                  handleSubjectChange(subject.name)
+                                  handleTeachingSubjectChange({
+                                    subjectId: subject._id,
+                                    subjectName: subject.name,
+                                    level: "Intermédiaire",
+                                  })
                                 }
-                                className="p-2 rounded hover:bg-slate-100 cursor-pointer transition-colors flex items-center justify-between"
+                                className="p-2 rounded hover:bg-slate-100 cursor-pointer transition-colors flex items-center justify-between group"
                               >
                                 <span className="text-sm">{subject.name}</span>
-                                <Plus className="h-4 w-4 text-blue-600" />
+                                <Plus className="h-4 w-4 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Learning Goals */}
+              <Card className="bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5 text-orange-600" />
+                    Matières que je veux apprendre
+                  </CardTitle>
+                  <CardDescription>
+                    Sélectionnez les matières que vous souhaitez apprendre
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Selected Learning Goals */}
+                    <div className="min-h-[80px] p-4 border rounded-lg bg-slate-50/50 space-y-3">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-2">
+                        <Check className="h-3 w-3" /> Objectifs d&apos;apprentissage
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {learningGoals.length > 0 ? (
+                          learningGoals.map((goal) => (
+                            <Badge
+                              key={goal.subjectId}
+                              variant="secondary"
+                              className="pl-2.5 pr-1.5 py-1 h-8 text-sm bg-white border border-orange-200 shadow-sm hover:bg-slate-100 transition-all flex items-center gap-1.5"
+                            >
+                              {goal.subjectName}
+                              <span className="text-xs text-gray-500 ml-1">({goal.level})</span>
+                              <select
+                                value={goal.level}
+                                onChange={(e) => {
+                                  const newLevel = e.target.value;
+                                  setLearningGoals((prev) =>
+                                    prev.map((g) =>
+                                      g.subjectId === goal.subjectId
+                                        ? { ...g, level: newLevel }
+                                        : g
+                                    )
+                                  );
+                                }}
+                                className="ml-1 text-xs border-0 bg-transparent focus:outline-none cursor-pointer"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {levels.map((l) => (
+                                  <option key={l} value={l}>
+                                    {l}
+                                  </option>
+                                ))}
+                              </select>
+                              <div
+                                className="h-4 w-4 rounded-full hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                                onClick={() =>
+                                  handleLearningGoalChange(goal)
+                                }
+                              >
+                                <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                              </div>
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm text-muted-foreground italic pl-1">
+                            Aucun objectif d&apos;apprentissage pour le moment
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Search & Selection */}
+                    <div className="space-y-3">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-2">
+                        <Plus className="h-3 w-3" /> Ajouter des matières à apprendre
+                      </Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Rechercher une matière..."
+                          value={learnSearchQuery}
+                          onChange={(e) => setLearnSearchQuery(e.target.value)}
+                          className="pl-10 bg-white/50"
+                        />
+                      </div>
+                      {filteredLearnSubjects.length > 0 && (
+                        <ScrollArea className="h-48 w-full rounded-md border bg-white/50">
+                          <div className="p-2 space-y-1">
+                            {filteredLearnSubjects.map((subject) => (
+                              <div
+                                key={subject._id}
+                                onClick={() =>
+                                  handleLearningGoalChange({
+                                    subjectId: subject._id,
+                                    subjectName: subject.name,
+                                    level: "Débutant",
+                                  })
+                                }
+                                className="p-2 rounded hover:bg-orange-50 cursor-pointer transition-colors flex items-center justify-between group"
+                              >
+                                <span className="text-sm">{subject.name}</span>
+                                <Plus className="h-4 w-4 text-orange-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                               </div>
                             ))}
                           </div>

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
+const Subject = require("../models/Subject");
 const protect = require("../middleware/authMiddleware");
 
 // @desc    Get all mentors (public endpoint)
@@ -33,13 +34,13 @@ router.get("/public", async (req, res) => {
         { username: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
         { bio: { $regex: search, $options: "i" } },
-        { "monitorProfile.expertise": { $regex: search, $options: "i" } },
+        { "monitorProfile.expertise.subject": { $regex: search, $options: "i" } },
       ];
     }
 
     // Filter by subject (expertise)
     if (subject) {
-      query["monitorProfile.expertise"] = { $regex: subject, $options: "i" };
+      query["monitorProfile.expertise.subject"] = subject;
     }
 
     // Filter by rating
@@ -112,16 +113,8 @@ router.get("/public", async (req, res) => {
     // Get total count for pagination
     const total = await User.countDocuments(query);
 
-    // Get unique subjects for filtering
-    const allMentors = await User.find({
-      isMonitor: true,
-      "monitorProfile.expertise": { $exists: true, $ne: [] },
-    });
-    const subjects = [
-      ...new Set(
-        allMentors.flatMap((mentor) => mentor.monitorProfile?.expertise || [])
-      ),
-    ];
+    // Get unique subjects for filtering (using Subject names from populated data)
+    const subjects = await Subject.find({}).select("name slug").lean();
 
     res.json({
       success: true,
@@ -132,7 +125,7 @@ router.get("/public", async (req, res) => {
         total,
         limit: limitNum,
       },
-      subjects,
+      subjects: subjects.map((s) => s.name),
       filters: {
         search: search || "",
         subject: subject || "",
@@ -178,13 +171,13 @@ router.get("/", protect, async (req, res) => {
         { username: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
         { bio: { $regex: search, $options: "i" } },
-        { "monitorProfile.expertise": { $regex: search, $options: "i" } },
+        { "monitorProfile.expertise.subject": { $regex: search, $options: "i" } },
       ];
     }
 
     // Filter by subject (expertise)
     if (subject) {
-      query["monitorProfile.expertise"] = { $regex: subject, $options: "i" };
+      query["monitorProfile.expertise.subject"] = subject;
     }
 
     // Filter by role
@@ -239,15 +232,8 @@ router.get("/", protect, async (req, res) => {
     // Get total count for pagination
     const total = await User.countDocuments(query);
 
-    // Get unique subjects for filtering
-    const allUsers = await User.find({
-      "monitorProfile.expertise": { $exists: true, $ne: [] },
-    });
-    const subjects = [
-      ...new Set(
-        allUsers.flatMap((user) => user.monitorProfile?.expertise || [])
-      ),
-    ];
+    // Get unique subjects for filtering (using Subject names from populated data)
+    const subjects = await Subject.find({}).select("name slug").lean();
 
     res.json({
       success: true,
@@ -258,7 +244,7 @@ router.get("/", protect, async (req, res) => {
         total,
         limit: limitNum,
       },
-      subjects,
+      subjects: subjects.map((s) => s.name),
       filters: {
         search: search || "",
         subject: subject || "",
@@ -324,9 +310,18 @@ router.get("/stats", protect, async (req, res) => {
 // @access  Private
 router.get("/:id", protect, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select(
-      "-password -passwordResetToken -passwordResetExpires -emailVerificationToken -emailVerificationExpires"
-    );
+    const user = await User.findById(req.params.id)
+      .select(
+        "-password -passwordResetToken -passwordResetExpires -emailVerificationToken -emailVerificationExpires"
+      )
+      .populate({
+        path: "monitorProfile.expertise.subject",
+        select: "name slug",
+      })
+      .populate({
+        path: "learningGoals.subject",
+        select: "name slug",
+      });
 
     if (!user) {
       return res.status(404).json({

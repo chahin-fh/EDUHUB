@@ -9,7 +9,27 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
+interface ExpertiseItem {
+  subject: string | { _id: string; name: string; slug: string };
+  level: string;
+  verified?: boolean;
+}
+
+interface LearningGoal {
+  subject: string | { _id: string; name: string; slug: string };
+  level: string;
+}
+
+interface MonitorProfile {
+  expertise: ExpertiseItem[];
+  verified: boolean;
+  rating: number;
+  ratingsCount: number;
+  coursesCreated: number;
+}
+
 interface User {
+  _id?: string;
   id: string;
   email: string;
   username: string;
@@ -19,8 +39,13 @@ interface User {
   phone?: string;
   birthdate?: string;
   about?: string;
+  bio?: string;
   expertise?: string[];
   role?: string;
+  isMonitor?: boolean;
+  monitorProfile?: MonitorProfile;
+  learningGoals?: LearningGoal[];
+  name?: string;
 }
 
 interface AuthContextType {
@@ -38,7 +63,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const isTokenValid = (token: string): boolean => {
   if (!token) return false;
   try {
-    // Vérification basique du format JWT
     const parts = token.split(".");
     return parts.length === 3;
   } catch {
@@ -54,7 +78,7 @@ const isTokenExpired = (token: string): boolean => {
     const currentTime = Date.now() / 1000;
     return payload.exp < currentTime;
   } catch {
-    return true; // Si on ne peut pas décoder, on considère comme expiré
+    return true;
   }
 };
 
@@ -78,13 +102,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ) {
           setUser(JSON.parse(storedUser));
         } else {
-          // Nettoyer les données invalides
           localStorage.removeItem("authToken");
           localStorage.removeItem("user");
         }
       } catch (error) {
         console.error("Error checking auth status:", error);
-        // Nettoyer les données corrompues
         localStorage.removeItem("authToken");
         localStorage.removeItem("user");
       } finally {
@@ -109,7 +131,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("authToken");
     localStorage.removeItem("user");
     setUser(null);
-    // Ne rediriger que si on n'est pas déjà sur la page de connexion
     if (window.location.pathname !== "/connexion") {
       router.push("/connexion");
     }

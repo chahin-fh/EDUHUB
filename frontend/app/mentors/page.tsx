@@ -23,6 +23,12 @@ import {
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 
+interface SubjectInfo {
+  _id: string;
+  name: string;
+  slug: string;
+}
+
 interface Mentor {
   _id: string;
   name: string;
@@ -31,10 +37,11 @@ interface Mentor {
   role: "admin" | "user";
   isMonitor: boolean;
   monitorProfile?: {
-    expertise: string[];
+    expertise: Array<{ subject: SubjectInfo | string; level: string; verified: boolean }>;
     verified: boolean;
     rating: number;
     coursesCreated: number;
+    ratingsCount: number;
   };
   avatar?: string;
   bio?: string;
@@ -475,7 +482,9 @@ export default function MentorsPage() {
                                     variant="secondary"
                                     className="text-xs"
                                   >
-                                    {expertise}
+                                    {typeof expertise.subject === "object"
+                                      ? expertise.subject.name
+                                      : expertise.subject}
                                   </Badge>
                                 ))}
                               {mentor.monitorProfile.expertise.length > 3 && (

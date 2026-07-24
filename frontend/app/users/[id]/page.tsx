@@ -21,22 +21,59 @@ import {
   Globe,
   Loader2,
   AlertCircle,
+  GraduationCap,
+  MessageSquare,
+  Phone,
+  Send,
 } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { RatingStars, ReviewForm } from "@/components/rating-stars";
 
-interface User {
+interface Subject {
+  _id: string;
+  name: string;
+  slug: string;
+}
+
+interface ExpertiseItem {
+  subject: Subject;
+  level: string;
+  verified: boolean;
+}
+
+interface LearningGoal {
+  subject: Subject;
+  level: string;
+}
+
+interface MonitorProfile {
+  expertise: ExpertiseItem[];
+  verified: boolean;
+  rating: number;
+  ratingsCount: number;
+  coursesCreated: number;
+}
+
+interface Review {
+  _id: string;
+  from: { _id: string; name: string; username: string; avatar?: string };
+  to: string;
+  subject: Subject;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+interface UserData {
   _id: string;
   name: string;
   username: string;
   email: string;
   role: "admin" | "user";
   isMonitor: boolean;
-  monitorProfile?: {
-    expertise: string[];
-    verified: boolean;
-    rating: number;
-    coursesCreated: number;
-  };
+  monitorProfile?: MonitorProfile;
+  learningGoals?: LearningGoal[];
   avatar?: string;
   bio?: string;
   createdAt: string;
@@ -58,33 +95,37 @@ interface Course {
 export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { user: currentUser, isAuthenticated } = useAuth();
   const userId = params.id as string;
 
-  const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewStats, setReviewStats] = useState<{
+    total: number;
+    average: number;
+    distribution: number[];
+  } | null>(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [sendingReview, setSendingReview] = useState(false);
+  const [sendingRequest, setSendingRequest] = useState(false);
 
   useEffect(() => {
     fetchUserDetails();
+    fetchReviews();
   }, [userId]);
 
   const fetchUserDetails = async () => {
     try {
       setLoading(true);
-
-      // Vérifier si l'utilisateur est authentifié
       const token =
         typeof window !== "undefined"
           ? localStorage.getItem("authToken")
           : null;
-      console.log("Token présent:", !!token);
-      console.log("User ID:", userId);
 
-      // Si pas de token, ne pas essayer de faire l'appel API
       if (!token) {
-        console.log("Aucun token trouvé, redirection vers la connexion");
-        setError("Veuillez vous connecter pour accéder à cette page.");
         router.push("/connexion");
         return;
       }
@@ -99,50 +140,136 @@ export default function UserDetailPage() {
         { headers }
       );
 
-      console.log("Status de la réponse:", response.status);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Erreur de réponse:", errorText);
-
-        // Si le token est invalide, le supprimer et rediriger
         if (response.status === 401) {
-          console.log("Token invalide, suppression et redirection");
-          if (typeof window !== "undefined") {
-            localStorage.removeItem("authToken");
-            localStorage.removeItem("user");
-          }
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("user");
           router.push("/connexion");
           return;
         }
-
-        if (response.status === 404) {
-          setError("Utilisateur non trouvé");
-          return;
-        }
-
-        throw new Error(
-          `Failed to fetch user: ${response.status} - ${errorText}`
-        );
+        throw new Error("Failed to fetch user");
       }
 
       const data = await response.json();
-      console.log("Données reçues:", data);
-
       if (data.success) {
-        setUser(data.user);
+        setUserData(data.user);
         setCourses(data.courses || []);
-        setError("");
-        console.log("Utilisateur chargé avec succès:", data.user.name);
       } else {
-        console.error("Erreur dans les données:", data.message);
         setError(data.message || "Error fetching user details");
       }
     } catch (err: any) {
       console.error("Error fetching user details:", err);
-      setError("Erreur lors du chargement des détails de l'utilisateur");
+      setError("Erreur lors du chargement");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/reviews/user/${userId}`
+      );
+      const data = await res.json();
+      if (data.success) {
+        setReviews(data.reviews);
+        setReviewStats(data.stats);
+      }
+    } catch (err) {
+      console.error("Error fetching reviews:", err);
+    }
+  };
+
+  const handleSendRequest = async () => {
+    if (!isAuthenticated) {
+      router.push("/connexion");
+      return;
+    }
+
+    if (!userData?.monitorProfile?.expertise?.length) {
+      alert("Cet utilisateur n'enseigne aucune matière");
+      return;
+    }
+
+    setSendingRequest(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const firstExpertise = userData.monitorProfile.expertise[0];
+      const subjectId =
+        typeof firstExpertise.subject === "object"
+          ? firstExpertise.subject._id
+          : firstExpertise.subject;
+
+      const res = await fetch("http://localhost:5000/api/matching/request", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mentorId: userId,
+          subjectId,
+          message: `Bonjour, j'aimerais apprendre ${
+            typeof firstExpertise.subject === "object"
+              ? firstExpertise.subject.name
+              : "cette matière"
+          } avec vous !`,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("Demande envoyée avec succès !");
+      } else {
+        alert(data.message || "Erreur lors de l'envoi");
+      }
+    } catch (err) {
+      console.error("Error sending request:", err);
+      alert("Erreur lors de l'envoi de la demande");
+    } finally {
+      setSendingRequest(false);
+    }
+  };
+
+  const handleSubmitReview = async (data: { rating: number; comment: string }) => {
+    if (!isAuthenticated || !currentUser) {
+      router.push("/connexion");
+      return;
+    }
+
+    setSendingReview(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const subjectId =
+        userData?.monitorProfile?.expertise?.[0]?.subject?._id;
+
+      const res = await fetch("http://localhost:5000/api/reviews", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          toUserId: userId,
+          subjectId,
+          rating: data.rating,
+          comment: data.comment,
+        }),
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        setShowReviewForm(false);
+        fetchReviews();
+        alert("Avis envoyé avec succès !");
+      } else {
+        alert(result.message || "Erreur lors de l'envoi de l'avis");
+      }
+    } catch (err) {
+      console.error("Error submitting review:", err);
+      alert("Erreur lors de l'envoi de l'avis");
+    } finally {
+      setSendingReview(false);
     }
   };
 
@@ -151,72 +278,33 @@ export default function UserDetailPage() {
       year: "numeric",
       month: "long",
       day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     });
   };
 
-  const getRoleBadge = (role: string, isMonitor: boolean) => {
-    if (role === "admin") {
-      return <Badge className="bg-red-100 text-red-800">Admin</Badge>;
-    }
-    if (isMonitor) {
-      return <Badge className="bg-blue-100 text-blue-800">Moniteur</Badge>;
-    }
-    return <Badge className="bg-gray-100 text-gray-800">Utilisateur</Badge>;
-  };
-
-  const getRoleIcon = (role: string, isMonitor: boolean) => {
-    if (role === "admin") return <Shield className="h-6 w-6 text-red-600" />;
-    if (isMonitor) return <Star className="h-6 w-6 text-blue-600" />;
-    return <Users className="h-6 w-6 text-gray-600" />;
-  };
+  const isOwnProfile = currentUser?.id === userId;
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pt-24 pb-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center items-center py-20">
-            <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-              <p className="text-gray-600 text-lg">Chargement des détails...</p>
-            </div>
-          </div>
+        <div className="flex justify-center items-center py-20">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Chargement des détails...</p>
         </div>
       </div>
     );
   }
 
-  if (error || !user) {
+  if (error || !userData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pt-24 pb-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Link
-            href="/users"
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-8 transition-colors"
-          >
+        <div className="max-w-6xl mx-auto px-4">
+          <Link href="/users" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-8">
             <ArrowLeft className="h-4 w-4" />
-            Retour aux utilisateurs
+            Retour
           </Link>
-
-          <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-8 shadow-lg max-w-2xl mx-auto">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <AlertCircle className="h-8 w-8 text-red-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {error || "Utilisateur non trouvé"}
-              </h3>
-              <p className="text-gray-600 mb-8">
-                L&apos;utilisateur que vous recherchez n&apos;existe pas ou a
-                été supprimé.
-              </p>
-              <Link href="/users">
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  Retourner aux utilisateurs
-                </Button>
-              </Link>
-            </div>
+          <div className="bg-white rounded-xl p-8 shadow-lg max-w-2xl mx-auto text-center">
+            <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-4" />
+            <p className="text-lg">{error || "Utilisateur non trouvé"}</p>
           </div>
         </div>
       </div>
@@ -226,259 +314,235 @@ export default function UserDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pt-24 pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Back Button */}
         <Link
           href="/users"
           className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-8 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Retour aux utilisateurs
+          Retour
         </Link>
 
         {/* Hero Section */}
-        <div className="relative mb-12">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl"></div>
-          <div className="relative bg-white/90 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 shadow-xl">
-            <div className="flex flex-col lg:flex-row items-center gap-8">
-              {/* Avatar */}
-              <div className="w-32 h-32 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                {user.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={user.name}
-                    className="w-32 h-32 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="text-white text-4xl font-bold">
-                    {user.name?.charAt(0) || user.username?.charAt(0) || "U"}
-                  </div>
-                )}
+        <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-2xl p-8 shadow-xl mb-8">
+          <div className="flex flex-col lg:flex-row items-center gap-8">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+              {userData.avatar ? (
+                <img src={userData.avatar} alt={userData.name} className="w-24 h-24 rounded-full object-cover" />
+              ) : (
+                <span className="text-white text-3xl font-bold">
+                  {(userData.name || userData.username || "U").charAt(0)}
+                </span>
+              )}
+            </div>
+            <div className="flex-1 text-center lg:text-left">
+              <h1 className="text-3xl font-bold text-gray-900">
+                {userData.name || userData.username}
+              </h1>
+              {userData.bio && (
+                <p className="text-gray-600 mt-2">{userData.bio}</p>
+              )}
+              <div className="flex flex-wrap gap-2 mt-3 justify-center lg:justify-start">
+                {userData.monitorProfile?.expertise?.map((exp, idx) => (
+                  <Badge key={idx} className="bg-blue-100 text-blue-800">
+                    {typeof exp.subject === "object" ? exp.subject.name : exp.subject}
+                    {exp.verified && <Award className="h-3 w-3 ml-1 inline" />}
+                  </Badge>
+                ))}
               </div>
-
-              {/* User Info */}
-              <div className="flex-1 text-center lg:text-left">
-                <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
-                  <h1 className="text-4xl font-bold text-gray-900">
-                    {user.name || user.username}
-                  </h1>
-                  {getRoleBadge(user.role, user.isMonitor)}
+            </div>
+            <div className="flex-shrink-0">
+              {!isOwnProfile && isAuthenticated && (
+                <div className="flex flex-col gap-2">
+                  <Button onClick={handleSendRequest} disabled={sendingRequest} className="gap-2">
+                    {sendingRequest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Demander une session
+                  </Button>
                 </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-4 text-gray-600 mb-4">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    <span>{user.email}</span>
-                  </div>
-                  {user.lastLogin && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      <span>
-                        Dernière connexion: {formatDate(user.lastLogin)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {user.bio && (
-                  <p className="text-gray-700 mb-4 max-w-2xl">{user.bio}</p>
-                )}
-
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-500" />
-                    <span className="text-gray-600">
-                      Inscrit le {formatDate(user.createdAt)}
-                    </span>
-                  </div>
-                  {user.emailVerified && (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-green-600">Email vérifié</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Role Icon */}
-              <div className="flex-shrink-0">
-                {getRoleIcon(user.role, user.isMonitor)}
-              </div>
+              )}
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Monitor Profile */}
-            {(user.isMonitor || user.role === "admin") && (
-              <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-8 shadow-lg">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <Star className="h-6 w-6 text-blue-600" />
-                  Profil Moniteur
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-3xl font-bold text-blue-600 mb-2">
-                      {user.monitorProfile?.coursesCreated || 0}
-                    </div>
-                    <div className="text-sm text-gray-600">Cours créés</div>
+            {/* Learning Goals */}
+            {userData.learningGoals && userData.learningGoals.length > 0 && (
+              <Card className="bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5 text-orange-600" />
+                    Apprend
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {userData.learningGoals.map((goal, idx) => (
+                      <Badge key={idx} variant="outline" className="text-sm bg-orange-50">
+                        {typeof goal.subject === "object" ? goal.subject.name : goal.subject}
+                        <span className="ml-1 text-xs text-gray-500">({goal.level})</span>
+                      </Badge>
+                    ))}
                   </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-3xl font-bold text-green-600 mb-2">
-                      {user.monitorProfile?.rating || 0}
-                    </div>
-                    <div className="text-sm text-gray-600">Note moyenne</div>
-                  </div>
-                </div>
+                </CardContent>
+              </Card>
+            )}
 
-                {/* Expertise */}
-                {user.monitorProfile?.expertise &&
-                  user.monitorProfile.expertise.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        Domaines d&apos;expertise
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {user.monitorProfile.expertise.map(
-                          (expertise, index) => (
-                            <Badge
-                              key={index}
-                              variant="secondary"
-                              className="text-sm"
-                            >
-                              {expertise}
-                            </Badge>
-                          )
-                        )}
+            {/* Teaching */}
+            {userData.isMonitor && userData.monitorProfile && (
+              <Card className="bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Star className="h-5 w-5 text-blue-600" />
+                    Enseigne
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-3xl font-bold text-blue-600">
+                        {userData.monitorProfile.rating || 0}
                       </div>
+                      <div className="text-sm text-gray-600">Note moyenne</div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-3xl font-bold text-green-600">
+                        {userData.monitorProfile.ratingsCount || 0}
+                      </div>
+                      <div className="text-sm text-gray-600">Avis reçus</div>
+                    </div>
+                  </div>
+                  {userData.monitorProfile.expertise?.map((exp, idx) => (
+                    <div key={idx} className="flex items-center justify-between py-2 border-b last:border-0">
+                      <span className="font-medium text-gray-900">
+                        {typeof exp.subject === "object" ? exp.subject.name : exp.subject}
+                      </span>
+                      <Badge variant="secondary">{exp.level}</Badge>
+                    </div>
+                  ))}
+                  {userData.monitorProfile.verified && (
+                    <div className="mt-4 flex items-center gap-2 p-3 bg-green-50 rounded-lg">
+                      <Award className="h-5 w-5 text-green-600" />
+                      <span className="text-green-800 font-medium">Moniteur vérifié</span>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            )}
 
-                {user.monitorProfile?.verified && (
-                  <div className="mt-6 flex items-center gap-2 p-4 bg-green-50 rounded-lg">
-                    <Award className="h-5 w-5 text-green-600" />
-                    <span className="text-green-800 font-medium">
-                      Moniteur vérifié
+            {/* Reviews */}
+            <Card className="bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="h-5 w-5 text-yellow-500" />
+                  Avis reçus
+                  {reviewStats && (
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      ({reviewStats.total})
                     </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {reviewStats && reviewStats.total > 0 && (
+                  <div className="flex items-center gap-2 mb-6">
+                    <RatingStars
+                      initialRating={reviewStats.average}
+                      readonly
+                      size="md"
+                      showValue
+                      count={reviewStats.total}
+                    />
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Courses */}
-            {courses.length > 0 && (
-              <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-8 shadow-lg">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <BookOpen className="h-6 w-6 text-blue-600" />
-                  Cours de {user.name || user.username}
-                </h2>
-
-                <div className="grid grid-cols-1 gap-4">
-                  {courses.map((course) => (
-                    <Link key={course._id} href={`/cours/${course._id}`}>
-                      <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer">
-                        <div className="flex justify-between items-start gap-4">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 mb-2 hover:text-blue-600 transition-colors">
-                              {course.courseName}
-                            </h3>
-                            <p className="text-sm text-gray-600 line-clamp-2">
-                              {course.description}
+                {reviews.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">
+                    Aucun avis pour le moment
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {reviews.map((review) => (
+                      <div key={review._id} className="border-b pb-4 last:border-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                            {(review.from.name || review.from.username || "U").charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm text-gray-900">
+                              {review.from.name || review.from.username}
                             </p>
-                          </div>
-                          <div className="flex flex-col gap-2 flex-shrink-0">
-                            {course.status && (
-                              <Badge
-                                variant={
-                                  course.status === "published"
-                                    ? "default"
-                                    : "secondary"
-                                }
-                              >
-                                {course.status === "published"
-                                  ? "Publié"
-                                  : course.status}
-                              </Badge>
-                            )}
-                            {course.category && (
-                              <Badge variant="outline" className="text-xs">
-                                {course.category}
-                              </Badge>
-                            )}
+                            <RatingStars initialRating={review.rating} readonly size="sm" />
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 mt-4 text-xs text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            <span>{formatDate(course.createdAt)}</span>
-                          </div>
-                          {course.level && <span>Niveau: {course.level}</span>}
-                        </div>
+                        {review.comment && (
+                          <p className="text-sm text-gray-600 ml-11">{review.comment}</p>
+                        )}
                       </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
+                    ))}
+                  </div>
+                )}
+
+                {!isOwnProfile && isAuthenticated && (
+                  <div className="mt-6 pt-4 border-t">
+                    {showReviewForm ? (
+                      <ReviewForm onSubmit={handleSubmitReview} loading={sendingReview} />
+                    ) : (
+                      <Button onClick={() => setShowReviewForm(true)} variant="outline" className="gap-2">
+                        <Star className="h-4 w-4" />
+                        Laisser un avis
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Quick Actions */}
-            <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                Actions rapides
-              </h3>
-              <div className="space-y-3">
-                <Button className="w-full gap-2">
-                  <Mail className="h-4 w-4" />
-                  Contacter
-                </Button>
-                {user.isMonitor && (
-                  <Button variant="outline" className="w-full gap-2">
-                    <Star className="h-4 w-4" />
-                    Suivre
-                  </Button>
+          <div className="space-y-6">
+            <Card className="bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg">
+              <CardHeader>
+                <CardTitle>Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {!isOwnProfile && isAuthenticated && (
+                  <>
+                    <Button onClick={handleSendRequest} disabled={sendingRequest} className="w-full gap-2">
+                      {sendingRequest ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                      Demander une session
+                    </Button>
+                    <Button variant="outline" className="w-full gap-2">
+                      <Phone className="h-4 w-4" />
+                      Appel vidéo
+                    </Button>
+                  </>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* Status */}
-            <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Statut</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Compte actif</span>
-                  <Badge
-                    className={
-                      user.isActive
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }
-                  >
-                    {user.isActive ? "Oui" : "Non"}
+            <Card className="bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg">
+              <CardHeader>
+                <CardTitle>Statut</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Compte</span>
+                  <Badge className={userData.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                    {userData.isActive ? "Actif" : "Inactif"}
                   </Badge>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Email vérifié</span>
-                  <Badge
-                    className={
-                      user.emailVerified
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }
-                  >
-                    {user.emailVerified ? "Oui" : "Non"}
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Email</span>
+                  <Badge className={userData.emailVerified ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                    {userData.emailVerified ? "Vérifié" : "Non vérifié"}
                   </Badge>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Rôle</span>
-                  {getRoleBadge(user.role, user.isMonitor)}
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Inscrit</span>
+                  <span className="text-sm text-gray-900">{formatDate(userData.createdAt)}</span>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

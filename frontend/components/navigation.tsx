@@ -44,15 +44,22 @@ export default function Navigation() {
   const navLinks = [
     { name: "Accueil", href: "/", icon: Home },
     { name: "Cours", href: "/cours", icon: BookOpen },
-    { name: "Trouver un Mentor", href: "/mentors", icon: Users },
+    { name: "Apprendre", href: "/apprendre", icon: Users },
     { name: "Contact", href: "/contact", icon: MessageSquare },
   ];
 
-  // Ajouter le lien Users seulement pour les admins
-  const allNavLinks =
-    isAuthenticated && user?.role === "admin"
-      ? [...navLinks, { name: "Utilisateurs", href: "/users", icon: Users }]
-      : navLinks;
+  // Ajouter les liens connectés
+  let extendedLinks = [...navLinks];
+  if (isAuthenticated) {
+    extendedLinks.push(
+      { name: "Messages", href: "/messages", icon: MessageSquare },
+      { name: "Demandes", href: "/demandes", icon: Users }
+    );
+  }
+  if (isAuthenticated && user?.role === "admin") {
+    extendedLinks.push({ name: "Utilisateurs", href: "/users", icon: Users });
+  }
+  const allNavLinks = extendedLinks;
 
   return (
     <nav

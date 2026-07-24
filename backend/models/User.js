@@ -1,5 +1,45 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+
+const expertiseSubjectSchema = new mongoose.Schema({
+  subject: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Subject",
+    required: true,
+  },
+  level: {
+    type: String,
+    enum: ["Débutant", "Intermédiaire", "Avancé"],
+    default: "Intermédiaire",
+  },
+  verified: {
+    type: Boolean,
+    default: false,
+  },
+}, { _id: false });
+
+const learningGoalSchema = new mongoose.Schema({
+  subject: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Subject",
+    required: true,
+  },
+  level: {
+    type: String,
+    enum: ["Débutant", "Intermédiaire", "Avancé"],
+    default: "Débutant",
+  },
+}, { _id: false });
+
+const availabilitySlotSchema = new mongoose.Schema({
+  day: {
+    type: String,
+    enum: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"],
+  },
+  startTime: String,
+  endTime: String,
+}, { _id: false });
+
 const userSchema = new mongoose.Schema(
   {
     googleId: { type: String, unique: true, sparse: true },
@@ -34,13 +74,18 @@ const userSchema = new mongoose.Schema(
     avatar: String,
     bio: String,
 
+    // --- Peer-to-peer learning fields ---
+
+    // What the user wants to learn
+    learningGoals: [learningGoalSchema],
+
     // Moniteur capabilities (peut être activé pour les users)
     isMonitor: {
       type: Boolean,
       default: true,
     },
     monitorProfile: {
-      expertise: [String],
+      expertise: [expertiseSubjectSchema],
       verified: {
         type: Boolean,
         default: false,
@@ -49,11 +94,18 @@ const userSchema = new mongoose.Schema(
         type: Number,
         default: 0,
       },
+      ratingsCount: {
+        type: Number,
+        default: 0,
+      },
       coursesCreated: {
         type: Number,
         default: 0,
       },
     },
+
+    // Availability (optional v1)
+    availability: [availabilitySlotSchema],
 
     // Status
     isActive: {
@@ -85,7 +137,6 @@ userSchema.pre("validate", function (next) {
   if (!this.name && this.username) {
     this.name = this.username;
   }
-
   next();
 });
 

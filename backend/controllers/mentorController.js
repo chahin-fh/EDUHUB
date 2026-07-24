@@ -1,14 +1,14 @@
 const User = require("../models/User");
 
-// @desc    Get all mentors (instructors)
+// @desc    Get all potential mentors (students who teach)
 // @route   GET /api/mentors
 // @access  Public
 exports.getMentors = async (req, res) => {
   try {
     const { search, subject } = req.query;
 
-    // Build query
-    let query = { role: "instructor" };
+    // Build query: use isMonitor as the flag
+    let query = { isMonitor: true, isActive: true };
 
     // If search term provided, search by name or username
     if (search) {
@@ -18,13 +18,21 @@ exports.getMentors = async (req, res) => {
       ];
     }
 
-    // If subject provided, search in expertise array
+    // If subject provided (ObjectId), search in expertise array
     if (subject) {
-      query.expertise = { $regex: subject, $options: "i" };
+      query["monitorProfile.expertise.subject"] = subject;
     }
 
     const mentors = await User.find(query)
       .select("-password")
+      .populate({
+        path: "monitorProfile.expertise.subject",
+        select: "name slug",
+      })
+      .populate({
+        path: "learningGoals.subject",
+        select: "name slug",
+      })
       .sort({ createdAt: -1 });
 
     res.json(mentors);
@@ -41,8 +49,18 @@ exports.getMentorById = async (req, res) => {
   try {
     const mentor = await User.findOne({
       _id: req.params.id,
-      role: "instructor",
-    }).select("-password");
+      isMonitor: true,
+      isActive: true,
+    })
+      .select("-password")
+      .populate({
+        path: "monitorProfile.expertise.subject",
+        select: "name slug",
+      })
+      .populate({
+        path: "learningGoals.subject",
+        select: "name slug",
+      });
 
     if (!mentor) {
       return res.status(404).json({ message: "Mentor not found" });

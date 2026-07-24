@@ -965,7 +965,9 @@ export default function ChatWidget() {
                                 <video
                                   autoPlay
                                   playsInline
-                                  ref={(v) => v && (v.srcObject = remoteStream)}
+                                  ref={(v: HTMLVideoElement | null) => {
+                                    if (v && remoteStream) v.srcObject = remoteStream;
+                                  }}
                                   className="w-full h-full object-contain"
                                 />
                               </div>
