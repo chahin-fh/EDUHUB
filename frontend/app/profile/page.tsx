@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +41,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SubjectsDisplay from "@/components/subjects-display";
 import MentorsDisplay from "@/components/mentors-display";
+import { PageTransition, AnimatedSection, AnimatedCard, StaggerContainer, StaggerItem } from "@/components/animated-section";
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
@@ -218,27 +220,30 @@ export default function ProfilePage() {
   const avatarChar = (user.username || "U").charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="space-y-8">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Mon Profil
-              </h1>
-              <p className="text-gray-600 mt-2">
-                G&eacute;rez vos informations personnelles et votre parcours
-              </p>
-            </div>
-            <Button
-              onClick={handleSaveChanges}
-              disabled={isSaving}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg shadow-lg transition-all duration-200"
-            >
-              {isSaving ? "Enregistrement..." : "Enregistrer les modifications"}
-            </Button>
-          </div>
+    <PageTransition>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="space-y-8">
+            {/* Header */}
+            <AnimatedSection className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h1 className="text-4xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Mon Profil
+                </h1>
+                <p className="text-gray-600 mt-2">
+                  G&eacute;rez vos informations personnelles et votre parcours
+                </p>
+              </div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={handleSaveChanges}
+                  disabled={isSaving}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-xl shadow-lg transition-all duration-200"
+                >
+                  {isSaving ? "Enregistrement..." : "Enregistrer les modifications"}
+                </Button>
+              </motion.div>
+            </AnimatedSection>
 
           <Tabs
             value={activeTab}
@@ -818,5 +823,6 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 }

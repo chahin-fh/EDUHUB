@@ -12,71 +12,28 @@ import {
   Clock,
   Loader2,
   Building,
+  TrendingUp,
+  Sparkles,
+  Activity,
+  ChevronRight,
+  Star,
+  Shield,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  PageTransition,
+  AnimatedSection,
+  StaggerContainer,
+  StaggerItem,
+  AnimatedCard,
+} from "@/components/animated-section";
 import EstablishmentManager from "@/components/admin/establishment-manager";
-
-// StatCard component from the user dashboard
-
-type StatCardProps = {
-  title: string;
-  value: string;
-  change: string;
-  icon: React.ReactNode;
-  trend: "up" | "down" | "new";
-  showProgress?: boolean;
-};
-
-function StatCard({
-  title,
-  value,
-  change,
-  icon,
-  trend,
-  showProgress = false,
-}: StatCardProps) {
-  const trendColors = {
-    up: "text-green-600 bg-green-100",
-    down: "text-red-600 bg-red-100",
-    new: "text-blue-600 bg-blue-100",
-  };
-
-  return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-sm font-medium text-gray-500">
-            {title}
-          </CardTitle>
-          <div className={`p-2 rounded-lg ${trendColors[trend]}`}>{icon}</div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold text-gray-900 mb-1">{value}</div>
-        <div className="flex items-center">
-          <span
-            className={`text-xs font-medium mr-2 px-2 py-0.5 rounded-full ${trendColors[trend]}`}
-          >
-            {change}
-          </span>
-          {showProgress && (
-            <div className="flex-1 ml-2">
-              <Progress
-                value={parseInt(value) || 0}
-                max={100}
-                className="h-1.5"
-              />
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 interface User {
   username: string;
@@ -85,57 +42,96 @@ interface User {
   role: string;
 }
 
+function StatCard({
+  title,
+  value,
+  change,
+  icon: Icon,
+  trend,
+  color,
+  showProgress = false,
+  index = 0,
+}: {
+  title: string;
+  value: string;
+  change: string;
+  icon: any;
+  trend: "up" | "down" | "new";
+  color: string;
+  showProgress?: boolean;
+  index?: number;
+}) {
+  const trendColors = {
+    up: "text-green-600 bg-green-100",
+    down: "text-red-600 bg-red-100",
+    new: "text-blue-600 bg-blue-100",
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1, duration: 0.4 }}
+    >
+      <Card className="group hover:shadow-xl transition-all duration-300 border-gray-200/80 bg-white/90 backdrop-blur-sm overflow-hidden hover:-translate-y-1">
+        <div className={`absolute top-0 right-0 w-32 h-32 rounded-bl-full bg-gradient-to-br ${color} opacity-5 group-hover:opacity-10 transition-opacity`} />
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-sm font-medium text-gray-500">{title}</CardTitle>
+            <motion.div
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              className={`p-2 rounded-lg ${trendColors[trend]}`}
+            >
+              <Icon className="h-5 w-5" />
+            </motion.div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-gray-900 mb-1">{value}</div>
+          <div className="flex items-center">
+            <span className={`text-xs font-medium mr-2 px-2 py-0.5 rounded-full ${trendColors[trend]}`}>
+              {change}
+            </span>
+            {showProgress && (
+              <div className="flex-1 ml-2">
+                <Progress value={parseInt(value) || 0} max={100} className="h-1.5" />
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { user, isLoading, isAuthenticated, logout } = useAuth();
   const [userCount, setUserCount] = useState(0);
   const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
-
   useEffect(() => {
-    // Vérifier si l'utilisateur est authentifié et est admin
     if (!isLoading) {
-      if (!isAuthenticated) {
-        router.push("/connexion");
-        return;
-      }
-
-      if (user && user.role !== "admin") {
-        router.replace("/dashboard");
-        return;
-      }
+      if (!isAuthenticated) { router.push("/connexion"); return; }
+      if (user && user.role !== "admin") { router.replace("/dashboard"); return; }
     }
   }, [isLoading, isAuthenticated, user, router]);
 
   useEffect(() => {
-    // Charger les données uniquement si l'utilisateur est admin
     if (isAuthenticated && user?.role === "admin") {
       const fetchAdminData = async () => {
         try {
           const token = localStorage.getItem("authToken");
-
-          // Fetch user count
           const usersRes = await fetch("http://localhost:5000/api/users", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           });
-
           if (usersRes.ok) {
             const usersData = await usersRes.json();
             setUserCount(usersData.length || 0);
           }
-
-          // Fetch messages
-          const messagesRes = await fetch(
-            "http://localhost:5000/api/messages",
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
+          const messagesRes = await fetch("http://localhost:5000/api/messages", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
           if (messagesRes.ok) {
             const messagesData = await messagesRes.json();
             setReceivedMessages(messagesData || []);
@@ -144,252 +140,253 @@ export default function AdminDashboard() {
           console.error("Error fetching admin data:", error);
         }
       };
-
       fetchAdminData();
     }
   }, [isAuthenticated, user]);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-500">Chargement du tableau de bord...</p>
+        </motion.div>
       </div>
     );
   }
 
-  if (!isAuthenticated || !user || user.role !== "admin") {
-    return null; // Will redirect
-  }
+  if (!isAuthenticated || !user || user.role !== "admin") return null;
 
   const stats = [
-    {
-      title: "Utilisateurs",
-      value: userCount.toString(),
-      icon: <Users className="h-5 w-5 text-purple-600" />,
-      change: "+12%",
-      trend: "up" as const,
-    },
-    {
-      title: "Cours",
-      value: "89",
-      icon: <BookOpen className="h-5 w-5 text-blue-600" />,
-      change: "+5",
-      trend: "up" as const,
-    },
-    {
-      title: "Messages",
-      value: receivedMessages.length.toString(),
-      icon: <MessageSquare className="h-5 w-5 text-green-600" />,
-      change: "+3",
-      trend: "new" as const,
-    },
-    {
-      title: "Taux d'engagement",
-      value: "78%",
-      icon: <BarChart className="h-5 w-5 text-amber-600" />,
-      change: "+2%",
-      trend: "up" as const,
-      showProgress: true,
-    },
+    { title: "Utilisateurs", value: userCount.toString(), icon: Users, change: "+12%", trend: "up" as const, color: "from-purple-500 to-purple-600" },
+    { title: "Cours", value: "89", icon: BookOpen, change: "+5", trend: "up" as const, color: "from-blue-500 to-blue-600" },
+    { title: "Messages", value: receivedMessages.length.toString(), icon: MessageSquare, change: "+3", trend: "new" as const, color: "from-green-500 to-green-600" },
+    { title: "Taux d'engagement", value: "78%", icon: BarChart, change: "+2%", trend: "up" as const, color: "from-amber-500 to-amber-600", showProgress: true },
   ];
 
   const recentActivities = [
-    {
-      id: 1,
-      user: "Jean Dupont",
-      action: "a créé un nouveau cours",
-      time: "Il y a 2 minutes",
-      course: "Introduction à React",
-    },
-    {
-      id: 2,
-      user: "Marie Martin",
-      action: "a rejoint la plateforme",
-      time: "Il y a 15 minutes",
-    },
-    {
-      id: 3,
-      user: "Pierre Durand",
-      action: "a terminé le cours",
-      time: "Il y a 1 heure",
-      course: "Les bases de TypeScript",
-    },
-    {
-      id: 4,
-      user: "Sophie Petit",
-      action: "a posé une question sur",
-      time: "Il y a 3 heures",
-      course: "Débuter avec Next.js",
-    },
+    { id: 1, user: "Jean Dupont", action: "a créé un nouveau cours", time: "Il y a 2 minutes", course: "Introduction à React", icon: BookOpen, color: "bg-blue-100 text-blue-600" },
+    { id: 2, user: "Marie Martin", action: "a rejoint la plateforme", time: "Il y a 15 minutes", icon: Users, color: "bg-green-100 text-green-600" },
+    { id: 3, user: "Pierre Durand", action: "a terminé le cours", time: "Il y a 1 heure", course: "Les bases de TypeScript", icon: Star, color: "bg-amber-100 text-amber-600" },
+    { id: 4, user: "Sophie Petit", action: "a posé une question sur", time: "Il y a 3 heures", course: "Débuter avec Next.js", icon: MessageSquare, color: "bg-purple-100 text-purple-600" },
   ];
-  const handleLogout = () => {
-    logout();
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !user) {
-    return null; // Will be redirected by useEffect
-  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Espace Administrateur
-          </h1>
-          <div className="flex space-x-4">
-            <Button variant="outline">
-              <Calendar className="mr-2 h-4 w-4" />
-              Calendrier
-            </Button>
-            <Link href="/admin/settings">
-              <Button>
-                <Settings className="mr-2 h-4 w-4" />
-                Paramètres
-              </Button>
-            </Link>
-          </div>
-        </div>
+    <PageTransition>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <AnimatedSection className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+            <div>
+              <motion.span
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-3"
+              >
+                <Sparkles className="w-4 h-4" />
+                Administration
+              </motion.span>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Tableau de Bord
+              </h1>
+              <p className="text-gray-500 mt-1">Gérez votre plateforme EDUHUB</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button variant="outline" className="gap-2 border-gray-200 hover:border-blue-300 rounded-xl">
+                  <Calendar className="h-4 w-4" />
+                  Calendrier
+                </Button>
+              </motion.div>
+              <Link href="/admin/settings">
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl">
+                    <Settings className="h-4 w-4" />
+                    Paramètres
+                  </Button>
+                </motion.div>
+              </Link>
+            </div>
+          </AnimatedSection>
 
-        {/* Tabs Navigation */}
-        <div className="border-b border-gray-200 mb-8">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "overview"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              Vue d&apos;ensemble
-            </button>
-            <button
-              onClick={() => setActiveTab("establishments")}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "establishments"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              Établissements
-            </button>
-          </nav>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === "overview" && (
-          <>
-            {/* Statistiques */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-              {stats.map((stat, index) => (
-                <StatCard
-                  key={index}
-                  title={stat.title}
-                  value={stat.value}
-                  change={stat.change}
-                  icon={stat.icon}
-                  trend={stat.trend}
-                  showProgress={stat.showProgress}
-                />
+          {/* Tabs */}
+          <AnimatedSection delay={0.1} className="mb-8">
+            <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-1.5 shadow-sm inline-flex">
+              {[
+                { id: "overview", label: "Vue d'ensemble", icon: Activity },
+                { id: "establishments", label: "Établissements", icon: Building },
+              ].map((tab) => (
+                <motion.button
+                  key={tab.id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                    activeTab === tab.id
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  }`}
+                >
+                  <tab.icon className="h-4 w-4" />
+                  {tab.label}
+                </motion.button>
               ))}
             </div>
+          </AnimatedSection>
 
-            <div className="grid gap-6 lg:grid-cols-3">
-              {/* Activités récentes */}
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Activités récentes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {recentActivities.map((activity) => (
-                      <div
-                        key={activity.id}
-                        className="flex items-start p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                      >
-                        <div className="p-2 rounded-full bg-blue-100 mr-4">
-                          <Users className="h-5 w-5 text-blue-600" />
+          <AnimatePresence mode="wait">
+            {activeTab === "overview" && (
+              <motion.div
+                key="overview"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Stats Grid */}
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+                  {stats.map((stat, index) => (
+                    <StatCard
+                      key={stat.title}
+                      title={stat.title}
+                      value={stat.value}
+                      change={stat.change}
+                      icon={stat.icon}
+                      trend={stat.trend}
+                      color={stat.color}
+                      showProgress={stat.showProgress}
+                      index={index}
+                    />
+                  ))}
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-3">
+                  {/* Activities */}
+                  <AnimatedCard className="lg:col-span-2">
+                    <Card className="border-gray-200/80 bg-white/90 backdrop-blur-sm shadow-lg rounded-2xl overflow-hidden">
+                      <CardHeader className="border-b border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-100">
+                              <Activity className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <CardTitle>Activités récentes</CardTitle>
+                              <p className="text-sm text-gray-500 mt-0.5">Les dernières actions sur la plateforme</p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">
-                            {activity.user}{" "}
-                            <span className="font-normal text-gray-600">
-                              {activity.action}
-                            </span>{" "}
-                            {activity.course && (
-                              <Link
-                                href="#"
-                                className="text-blue-600 hover:underline"
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <div className="divide-y divide-gray-100">
+                          {recentActivities.map((activity, idx) => (
+                            <motion.div
+                              key={activity.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: idx * 0.1 }}
+                              className="flex items-start p-4 hover:bg-blue-50/50 transition-colors cursor-pointer group"
+                            >
+                              <motion.div
+                                whileHover={{ scale: 1.1, rotate: 5 }}
+                                className={`p-2.5 rounded-xl ${activity.color} mr-4 flex-shrink-0`}
                               >
-                                {activity.course}
-                              </Link>
-                            )}
-                          </p>
+                                <activity.icon className="h-5 w-5" />
+                              </motion.div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-900">
+                                  {activity.user}
+                                  <span className="font-normal text-gray-500"> {activity.action}</span>
+                                  {activity.course && (
+                                    <span className="text-blue-600 hover:underline ml-1">{activity.course}</span>
+                                  )}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-3.5 w-3.5 text-gray-400" />
+                                <span className="text-xs text-gray-400 whitespace-nowrap">{activity.time}</span>
+                              </div>
+                            </motion.div>
+                          ))}
                         </div>
-                        <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">
-                          {activity.time}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      </CardContent>
+                    </Card>
+                  </AnimatedCard>
 
-              {/* Messages reçus */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Messages reçus</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {receivedMessages.length > 0 ? (
-                      receivedMessages.map((message, index) => (
-                        <div
-                          key={index}
-                          className="flex items-start p-2 hover:bg-gray-50 rounded-lg cursor-pointer border-b last:border-b-0"
-                        >
-                          <div className="rounded-lg bg-blue-100 p-2 mr-4">
-                            <MessageSquare className="h-5 w-5 text-blue-600" />
+                  {/* Messages */}
+                  <AnimatedCard delay={0.2}>
+                    <Card className="border-gray-200/80 bg-white/90 backdrop-blur-sm shadow-lg rounded-2xl overflow-hidden h-full">
+                      <CardHeader className="border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-green-100">
+                            <MessageSquare className="h-5 w-5 text-green-600" />
                           </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">
-                              {message.subject || "Sans sujet"}
-                            </p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {message.sender || message.email || "Anonyme"}
-                            </p>
-                            <p className="text-xs text-gray-600 line-clamp-2">
-                              {message.message || message.content}
-                            </p>
+                          <div>
+                            <CardTitle>Messages reçus</CardTitle>
+                            <p className="text-sm text-gray-500 mt-0.5">{receivedMessages.length} message(s)</p>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8">
-                        <MessageSquare className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                        <p className="text-gray-500 text-sm">
-                          Aucun message reçu
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          {receivedMessages.length > 0 ? (
+                            receivedMessages.slice(0, 4).map((message, index) => (
+                              <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.08 }}
+                                className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer border border-gray-100"
+                              >
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                                  {(message.sender || message.email || "?").charAt(0).toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm text-gray-900 truncate">
+                                    {message.subject || "Sans sujet"}
+                                  </p>
+                                  <p className="text-xs text-gray-500 truncate">
+                                    {message.sender || message.email || "Anonyme"}
+                                  </p>
+                                  <p className="text-xs text-gray-600 line-clamp-2 mt-1">
+                                    {message.message || message.content}
+                                  </p>
+                                </div>
+                              </motion.div>
+                            ))
+                          ) : (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="text-center py-8"
+                            >
+                              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <MessageSquare className="h-8 w-8 text-gray-300" />
+                              </div>
+                              <p className="text-gray-500 text-sm">Aucun message reçu</p>
+                            </motion.div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </AnimatedCard>
+                </div>
+              </motion.div>
+            )}
 
-        {activeTab === "establishments" && <EstablishmentManager />}
+            {activeTab === "establishments" && (
+              <motion.div
+                key="establishments"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <EstablishmentManager />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

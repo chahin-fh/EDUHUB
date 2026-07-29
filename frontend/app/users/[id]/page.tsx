@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ import {
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { RatingStars, ReviewForm } from "@/components/rating-stars";
+import { PageTransition, AnimatedSection, StaggerContainer, StaggerItem, AnimatedCard } from "@/components/animated-section";
+import { toast } from "sonner";
 
 interface Subject {
   _id: string;
@@ -187,7 +190,7 @@ export default function UserDetailPage() {
     }
 
     if (!userData?.monitorProfile?.expertise?.length) {
-      alert("Cet utilisateur n'enseigne aucune matière");
+      toast.error("Cet utilisateur n'enseigne aucune matière");
       return;
     }
 
@@ -219,13 +222,13 @@ export default function UserDetailPage() {
 
       const data = await res.json();
       if (data.success) {
-        alert("Demande envoyée avec succès !");
+        toast.success("Demande envoyée avec succès !");
       } else {
-        alert(data.message || "Erreur lors de l'envoi");
+        toast.error(data.message || "Erreur lors de l'envoi");
       }
     } catch (err) {
       console.error("Error sending request:", err);
-      alert("Erreur lors de l'envoi de la demande");
+      toast.error("Erreur lors de l'envoi de la demande");
     } finally {
       setSendingRequest(false);
     }
@@ -261,13 +264,13 @@ export default function UserDetailPage() {
       if (result.success) {
         setShowReviewForm(false);
         fetchReviews();
-        alert("Avis envoyé avec succès !");
+        toast.success("Avis envoyé avec succès !");
       } else {
-        alert(result.message || "Erreur lors de l'envoi de l'avis");
+        toast.error(result.message || "Erreur lors de l'envoi de l'avis");
       }
     } catch (err) {
       console.error("Error submitting review:", err);
-      alert("Erreur lors de l'envoi de l'avis");
+      toast.error("Erreur lors de l'envoi de l'avis");
     } finally {
       setSendingReview(false);
     }
@@ -312,12 +315,13 @@ export default function UserDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pt-24 pb-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/users"
-          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-8 transition-colors"
-        >
+    <PageTransition>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pt-24 pb-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Link
+            href="/users"
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-8 transition-colors"
+          >
           <ArrowLeft className="h-4 w-4" />
           Retour
         </Link>
@@ -547,5 +551,6 @@ export default function UserDetailPage() {
         </div>
       </div>
     </div>
+    </PageTransition>
   );
 }

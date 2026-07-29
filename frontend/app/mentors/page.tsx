@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,19 +10,20 @@ import {
   Search,
   Filter,
   Users,
-  Mail,
   Calendar,
   Star,
   BookOpen,
   Loader2,
-  UserCheck,
   Award,
-  MapPin,
-  Globe,
   AlertCircle,
+  Sparkles,
+  SlidersHorizontal,
+  X,
+  ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { AnimatedSection, StaggerContainer, StaggerItem, AnimatedCard, PageTransition } from "@/components/animated-section";
 
 interface SubjectInfo {
   _id: string;
@@ -51,6 +53,102 @@ interface Mentor {
   emailVerified: boolean;
 }
 
+function MentorCard({ mentor }: { mentor: Mentor }) {
+  const getRatingStars = (rating: number) => {
+    return [1, 2, 3, 4, 5].map((i) => (
+      <Star key={i} className={`h-4 w-4 ${i <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-200"}`} />
+    ));
+  };
+
+  return (
+    <StaggerItem>
+      <AnimatedCard>
+        <Link href={`/users/${mentor._id}`}>
+          <div className="group bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer">
+            <div className="relative h-40 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 overflow-hidden">
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"
+                initial={{ opacity: 0 }}
+                whileHover={{ opacity: 1 }}
+              />
+              <div className="absolute top-4 right-4 flex gap-2">
+                {mentor.monitorProfile?.verified && (
+                  <Badge className="bg-green-100 text-green-800 border-green-200 shadow-sm">
+                    <Award className="h-3 w-3 mr-1" />
+                    Vérifié
+                  </Badge>
+                )}
+                {(mentor.monitorProfile?.rating ?? 0) >= 4.5 && (
+                  <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 shadow-sm animate-gentle-bounce">
+                    <Star className="h-3 w-3 mr-1 fill-yellow-500" />
+                    Top
+                  </Badge>
+                )}
+              </div>
+              <div className="absolute bottom-4 left-4">
+                <motion.div
+                  className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg"
+                  whileHover={{ scale: 1.1, rotate: 10 }}
+                >
+                  <Star className="h-6 w-6 text-blue-600" />
+                </motion.div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                {mentor.name || mentor.username}
+              </h3>
+
+              {mentor.monitorProfile?.rating && (
+                <div className="flex items-center gap-1 mb-3">
+                  {getRatingStars(mentor.monitorProfile.rating)}
+                  <span className="text-sm text-gray-500 ml-1">
+                    ({mentor.monitorProfile.rating.toFixed(1)})
+                  </span>
+                </div>
+              )}
+
+              {mentor.bio && (
+                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{mentor.bio}</p>
+              )}
+
+              {mentor.monitorProfile?.expertise && mentor.monitorProfile.expertise.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Expertise</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {mentor.monitorProfile.expertise.slice(0, 3).map((exp, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-100">
+                        {typeof exp.subject === "object" ? exp.subject.name : exp.subject}
+                      </Badge>
+                    ))}
+                    {mentor.monitorProfile.expertise.length > 3 && (
+                      <Badge variant="secondary" className="text-xs bg-gray-50">
+                        +{mentor.monitorProfile.expertise.length - 3}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <BookOpen className="h-3 w-3" />
+                  <span>{mentor.monitorProfile?.coursesCreated || 0} cours</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <Calendar className="h-3 w-3" />
+                  <span>{new Date(mentor.createdAt).toLocaleDateString("fr-FR", { year: "numeric", month: "short" })}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Link>
+      </AnimatedCard>
+    </StaggerItem>
+  );
+}
+
 export default function MentorsPage() {
   const { user, isAuthenticated } = useAuth();
   const [mentors, setMentors] = useState<Mentor[]>([]);
@@ -64,502 +162,212 @@ export default function MentorsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalMentors, setTotalMentors] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetchMentors();
-  }, [
-    searchQuery,
-    selectedSubject,
-    selectedRating,
-    selectedExperience,
-    currentPage,
-  ]);
+  }, [searchQuery, selectedSubject, selectedRating, selectedExperience, currentPage]);
 
   const fetchMentors = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: "12",
-        role: "monitor", // Filtrer uniquement les moniteurs
-        sortBy: "monitorProfile.rating",
-        sortOrder: "desc",
+        page: currentPage.toString(), limit: "12",
+        role: "monitor", sortBy: "monitorProfile.rating", sortOrder: "desc",
       });
-
       if (searchQuery) params.append("search", searchQuery);
       if (selectedSubject) params.append("subject", selectedSubject);
       if (selectedRating) params.append("rating", selectedRating);
       if (selectedExperience) params.append("experience", selectedExperience);
 
-      // Récupérer le token depuis localStorage si disponible
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("authToken")
-          : null;
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
+      let response = await fetch(`http://localhost:5000/api/usersList?${params}`, { headers });
 
-      const response = await fetch(
-        `http://localhost:5000/api/usersList?${params}`,
-        { headers }
-      );
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Si non authentifié, essayer sans authentification pour les mentors publics
-          const publicResponse = await fetch(
-            `http://localhost:5000/api/usersList/public?${params}`,
-            { headers: { "Content-Type": "application/json" } }
-          );
-
-          if (!publicResponse.ok) {
-            throw new Error("Failed to fetch mentors");
-          }
-
-          const data = await publicResponse.json();
-
-          if (data.success) {
-            setMentors(data.users);
-            setSubjects(data.subjects || []);
-            setTotalPages(data.pagination.pages);
-            setTotalMentors(data.pagination.total);
-            setError("");
-          } else {
-            setError(data.message || "Error fetching mentors");
-          }
-          return;
-        }
-        throw new Error("Failed to fetch mentors");
+      if (response.status === 401) {
+        response = await fetch(`http://localhost:5000/api/usersList/public?${params}`, { headers: { "Content-Type": "application/json" } });
       }
 
       const data = await response.json();
-
       if (data.success) {
-        setMentors(data.users);
-        setSubjects(data.subjects || []);
-        setTotalPages(data.pagination.pages);
-        setTotalMentors(data.pagination.total);
+        setMentors(data.users); setSubjects(data.subjects || []);
+        setTotalPages(data.pagination.pages); setTotalMentors(data.pagination.total);
         setError("");
-      } else {
-        setError(data.message || "Error fetching mentors");
-      }
+      } else setError(data.message || "Error");
     } catch (err) {
-      console.error("Error fetching mentors:", err);
       setError("Erreur lors du chargement des mentors");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+  const clearFilters = () => {
+    setSearchQuery(""); setSelectedSubject(""); setSelectedRating("");
+    setSelectedExperience(""); setCurrentPage(1);
   };
 
-  const getRatingStars = (rating: number) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <Star
-          key={i}
-          className={`h-4 w-4 ${
-            i <= rating ? "text-yellow-400 fill-current" : "text-gray-300"
-          }`}
-        />
-      );
-    }
-    return stars;
-  };
+  const hasActiveFilters = searchQuery || selectedSubject || selectedRating || selectedExperience;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pt-24 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
-            Trouver un Mentor
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Connectez-vous avec des experts passionnés pour vous guider dans
-            votre parcours d&apos;apprentissage
-          </p>
-        </div>
+    <PageTransition>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pt-24 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <AnimatedSection className="text-center mb-12">
+            <motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-4">
+              <Sparkles className="w-4 h-4" /> Communauté de mentors
+            </motion.span>
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+              Trouver un Mentor
+            </h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Connectez-vous avec des étudiants passionnés pour vous guider dans votre parcours
+            </p>
+          </AnimatedSection>
 
-        {/* Search and Filter Section */}
-        <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg mb-8">
-          {/* Search Bar */}
-          <div className="flex flex-col lg:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <Input
-                placeholder="Rechercher un mentor par nom, expertise, bio..."
-                className="pl-12 h-14 text-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-          </div>
+          {/* Search and Filters */}
+          <AnimatedSection delay={0.2}>
+            <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-lg mb-8">
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Input placeholder="Rechercher un mentor..." className="pl-12 h-14 text-lg border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl" value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
+                </div>
+                <motion.div whileTap={{ scale: 0.95 }}>
+                  <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="h-14 px-6 border-gray-200 rounded-xl gap-2">
+                    <SlidersHorizontal className="h-5 w-5" />
+                    Filtres
+                  </Button>
+                </motion.div>
+              </div>
 
-          {/* Advanced Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {/* Subject Filter */}
-            <div className="relative">
-              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <select
-                className="pl-12 h-12 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg bg-white border appearance-none pr-8 w-full"
-                value={selectedSubject}
-                onChange={(e) => {
-                  setSelectedSubject(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="">Toutes les matières</option>
-                {subjects.map((subject) => (
-                  <option key={subject} value={subject}>
-                    {subject}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <motion.div animate={{ height: showFilters ? "auto" : 0, opacity: showFilters ? 1 : 0 }}
+                transition={{ duration: 0.3 }} className="overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-100">
+                  <div className="relative">
+                    <Filter className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <select className="pl-10 h-12 text-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl bg-white border appearance-none pr-8 w-full cursor-pointer"
+                      value={selectedSubject} onChange={(e) => { setSelectedSubject(e.target.value); setCurrentPage(1); }}>
+                      <option value="">Toutes les matières</option>
+                      {subjects.map((s) => (<option key={s} value={s}>{s}</option>))}
+                    </select>
+                  </div>
+                  <div className="relative">
+                    <Star className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <select className="pl-10 h-12 text-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl bg-white border appearance-none pr-8 w-full cursor-pointer"
+                      value={selectedRating} onChange={(e) => { setSelectedRating(e.target.value); setCurrentPage(1); }}>
+                      <option value="">Toutes les notes</option>
+                      <option value="5">5 étoiles</option>
+                      <option value="4">4 étoiles et plus</option>
+                      <option value="3">3 étoiles et plus</option>
+                    </select>
+                  </div>
+                  <div className="relative">
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <select className="pl-10 h-12 text-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl bg-white border appearance-none pr-8 w-full cursor-pointer"
+                      value={selectedExperience} onChange={(e) => { setSelectedExperience(e.target.value); setCurrentPage(1); }}>
+                      <option value="">Toutes expériences</option>
+                      <option value="senior">Mentors expérimentés</option>
+                      <option value="intermediate">Intermédiaires</option>
+                      <option value="beginner">Débutants</option>
+                    </select>
+                  </div>
+                </div>
+              </motion.div>
 
-            {/* Rating Filter */}
-            <div className="relative">
-              <Star className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <select
-                className="pl-12 h-12 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg bg-white border appearance-none pr-8 w-full"
-                value={selectedRating}
-                onChange={(e) => {
-                  setSelectedRating(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="">Toutes les notes</option>
-                <option value="5">5 étoiles</option>
-                <option value="4">4 étoiles et plus</option>
-                <option value="3">3 étoiles et plus</option>
-                <option value="2">2 étoiles et plus</option>
-              </select>
-            </div>
-
-            {/* Experience Filter */}
-            <div className="relative">
-              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <select
-                className="pl-12 h-12 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg bg-white border appearance-none pr-8 w-full"
-                value={selectedExperience}
-                onChange={(e) => {
-                  setSelectedExperience(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="">Toutes expériences</option>
-                <option value="senior">Mentors expérimentés</option>
-                <option value="intermediate">Mentors intermédiaires</option>
-                <option value="beginner">Mentors débutants</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Active Filters */}
-          {(searchQuery ||
-            selectedSubject ||
-            selectedRating ||
-            selectedExperience) && (
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="text-sm text-gray-600">Filtres actifs:</span>
-              {searchQuery && (
-                <Badge variant="secondary" className="gap-1">
-                  &quot;{searchQuery}&quot;
-                  <button
-                    onClick={() => {
-                      setSearchQuery("");
-                      setCurrentPage(1);
-                    }}
-                    className="ml-1 hover:text-red-600"
-                  >
-                    &times;
-                  </button>
-                </Badge>
+              {hasActiveFilters && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Filtres actifs :</span>
+                  {searchQuery && (
+                    <Badge variant="secondary" className="gap-1 py-1.5">
+                      &ldquo;{searchQuery}&rdquo;
+                      <button onClick={() => setSearchQuery("")} className="ml-1 hover:text-red-500"><X className="h-3 w-3" /></button>
+                    </Badge>
+                  )}
+                  {selectedSubject && (
+                    <Badge variant="secondary" className="gap-1 py-1.5">
+                      {selectedSubject}
+                      <button onClick={() => setSelectedSubject("")} className="ml-1 hover:text-red-500"><X className="h-3 w-3" /></button>
+                    </Badge>
+                  )}
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Button variant="outline" size="sm" onClick={clearFilters} className="border-gray-200 text-gray-500 hover:text-blue-600 rounded-lg">
+                      Effacer tout
+                    </Button>
+                  </motion.div>
+                </motion.div>
               )}
-              {selectedSubject && (
-                <Badge variant="secondary" className="gap-1">
-                  {selectedSubject}
-                  <button
-                    onClick={() => {
-                      setSelectedSubject("");
-                      setCurrentPage(1);
-                    }}
-                    className="ml-1 hover:text-red-600"
-                  >
-                    &times;
-                  </button>
-                </Badge>
-              )}
-              {selectedRating && (
-                <Badge variant="secondary" className="gap-1">
-                  {selectedRating === "5"
-                    ? "5 étoiles"
-                    : selectedRating === "4"
-                    ? "4+ étoiles"
-                    : selectedRating === "3"
-                    ? "3+ étoiles"
-                    : "2+ étoiles"}
-                  <button
-                    onClick={() => {
-                      setSelectedRating("");
-                      setCurrentPage(1);
-                    }}
-                    className="ml-1 hover:text-red-600"
-                  >
-                    &times;
-                  </button>
-                </Badge>
-              )}
-              {selectedExperience && (
-                <Badge variant="secondary" className="gap-1">
-                  {selectedExperience === "senior"
-                    ? "Expérimentés"
-                    : selectedExperience === "intermediate"
-                    ? "Intermédiaires"
-                    : "Débutants"}
-                  <button
-                    onClick={() => {
-                      setSelectedExperience("");
-                      setCurrentPage(1);
-                    }}
-                    className="ml-1 hover:text-red-600"
-                  >
-                    &times;
-                  </button>
-                </Badge>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedSubject("");
-                  setSelectedRating("");
-                  setSelectedExperience("");
-                  setCurrentPage(1);
-                }}
-                className="border-gray-300 hover:border-blue-500 hover:bg-blue-50"
-              >
-                Effacer les filtres
-              </Button>
             </div>
+          </AnimatedSection>
+
+          {/* Results */}
+          <AnimatedSection delay={0.3}>
+            {totalMentors > 0 && (
+              <div className="mb-6 text-center">
+                <p className="text-gray-600"><span className="font-semibold text-gray-900">{totalMentors}</span> mentor{totalMentors > 1 ? "s" : ""} disponible{totalMentors > 1 ? "s" : ""}</p>
+              </div>
+            )}
+          </AnimatedSection>
+
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
+                <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+                <p className="text-gray-500">Chargement des mentors...</p>
+              </motion.div>
+            </div>
+          ) : error ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white/80 rounded-2xl p-8 shadow-lg max-w-lg mx-auto text-center border border-red-100">
+              <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+              <p className="text-gray-700 mb-4">{error}</p>
+              <Button onClick={fetchMentors} className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">Réessayer</Button>
+            </motion.div>
+          ) : mentors.length === 0 ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 bg-white/50 rounded-2xl border border-dashed border-gray-200">
+              <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun mentor trouvé</h3>
+              <p className="text-gray-500 mb-6">{searchQuery || selectedSubject ? "Aucun mentor ne correspond à vos critères" : "Aucun mentor disponible pour le moment"}</p>
+              {hasActiveFilters && <Button variant="outline" onClick={clearFilters} className="rounded-xl">Effacer les filtres</Button>}
+            </motion.div>
+          ) : (
+            <>
+              <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                {mentors.map((mentor) => (<MentorCard key={mentor._id} mentor={mentor} />))}
+              </StaggerContainer>
+
+              {totalPages > 1 && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center items-center gap-2">
+                  <motion.div whileTap={{ scale: 0.95 }}>
+                    <Button variant="outline" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)} className="border-gray-200 rounded-xl">
+                      Précédent
+                    </Button>
+                  </motion.div>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const page = i + 1;
+                      return (
+                        <motion.div key={page} whileTap={{ scale: 0.9 }}>
+                          <Button variant={currentPage === page ? "default" : "outline"} onClick={() => setCurrentPage(page)}
+                            className={`w-10 h-10 rounded-xl ${currentPage === page ? "bg-gradient-to-r from-blue-600 to-purple-600" : "border-gray-200"}`}>
+                            {page}
+                          </Button>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                  <motion.div whileTap={{ scale: 0.95 }}>
+                    <Button variant="outline" disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)} className="border-gray-200 rounded-xl">
+                      Suivant
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              )}
+            </>
           )}
         </div>
-
-        {/* Results Count */}
-        <div className="mb-6 text-center">
-          <p className="text-gray-600">
-            {totalMentors} mentor{totalMentors > 1 ? "s" : ""} disponible
-            {totalMentors > 1 ? "s" : ""}
-          </p>
-        </div>
-
-        {/* Mentors Grid */}
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-              <p className="text-gray-600 text-lg">Chargement des mentors...</p>
-            </div>
-          </div>
-        ) : error ? (
-          <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-8 shadow-lg max-w-2xl mx-auto">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <AlertCircle className="h-8 w-8 text-red-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">{error}</h3>
-              <Button
-                onClick={fetchMentors}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                Réessayer
-              </Button>
-            </div>
-          </div>
-        ) : mentors.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-8">
-              <Users className="h-12 w-12 text-gray-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              Aucun mentor trouvé
-            </h3>
-            <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-8">
-              {searchQuery || selectedSubject
-                ? "Aucun mentor ne correspond à vos critères de recherche."
-                : "Aucun mentor n'est encore disponible."}
-            </p>
-            {(searchQuery || selectedSubject) && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedSubject("");
-                  setCurrentPage(1);
-                }}
-                className="border-gray-300 hover:border-blue-500 hover:bg-blue-50"
-              >
-                Effacer les filtres
-              </Button>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-              {mentors.map((mentor) => (
-                <Link key={mentor._id} href={`/users/${mentor._id}`}>
-                  <div className="group bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer">
-                    {/* Header */}
-                    <div className="relative h-40 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600">
-                      <div className="absolute top-4 right-4">
-                        {mentor.monitorProfile?.verified && (
-                          <Badge className="bg-green-100 text-green-800">
-                            <Award className="h-3 w-3 mr-1" />
-                            Vérifié
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="absolute bottom-4 left-4">
-                        <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center">
-                          <Star className="h-6 w-6 text-blue-600" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-6">
-                      <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-                        {mentor.name || mentor.username}
-                      </h3>
-
-                      {/* Rating */}
-                      {mentor.monitorProfile?.rating && (
-                        <div className="flex items-center gap-1 mb-3">
-                          {getRatingStars(mentor.monitorProfile.rating)}
-                          <span className="text-sm text-gray-600 ml-1">
-                            ({mentor.monitorProfile.rating})
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Bio */}
-                      {mentor.bio && (
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                          {mentor.bio}
-                        </p>
-                      )}
-
-                      {/* Expertise */}
-                      {mentor.monitorProfile?.expertise &&
-                        mentor.monitorProfile.expertise.length > 0 && (
-                          <div className="mb-4">
-                            <p className="text-sm font-medium text-gray-700 mb-2">
-                              Expertise:
-                            </p>
-                            <div className="flex flex-wrap gap-1">
-                              {mentor.monitorProfile.expertise
-                                .slice(0, 3)
-                                .map((expertise, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    {typeof expertise.subject === "object"
-                                      ? expertise.subject.name
-                                      : expertise.subject}
-                                  </Badge>
-                                ))}
-                              {mentor.monitorProfile.expertise.length > 3 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  +{mentor.monitorProfile.expertise.length - 3}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                      {/* Stats */}
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <BookOpen className="h-3 w-3" />
-                          <span>
-                            {mentor.monitorProfile?.coursesCreated || 0} cours
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <Calendar className="h-3 w-3" />
-                          <span>Depuis {formatDate(mentor.createdAt)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2">
-                <Button
-                  variant="outline"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  className="border-gray-300 hover:border-blue-500 hover:bg-blue-50"
-                >
-                  Précédent
-                </Button>
-
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const page = i + 1;
-                    return (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        onClick={() => setCurrentPage(page)}
-                        className={`w-10 h-10 ${
-                          currentPage === page
-                            ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                            : "border-gray-300 hover:border-blue-500 hover:bg-blue-50"
-                        }`}
-                      >
-                        {page}
-                      </Button>
-                    );
-                  })}
-                </div>
-
-                <Button
-                  variant="outline"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  className="border-gray-300 hover:border-blue-500 hover:bg-blue-50"
-                >
-                  Suivant
-                </Button>
-              </div>
-            )}
-          </>
-        )}
       </div>
-    </div>
+    </PageTransition>
   );
 }

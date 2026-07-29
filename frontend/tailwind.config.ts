@@ -67,20 +67,59 @@ const config: Config = {
           to: { height: '0' },
         },
         'fadeInUp': {
-          '0%': {
-            opacity: '0',
-            transform: 'translateY(10px)',
-          },
-          '100%': {
-            opacity: '1',
-            transform: 'translateY(0)',
-          },
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'fadeInDown': {
+          '0%': { opacity: '0', transform: 'translateY(-20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'fadeInLeft': {
+          '0%': { opacity: '0', transform: 'translateX(-20px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        'fadeInRight': {
+          '0%': { opacity: '0', transform: 'translateX(20px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        'slideUp': {
+          '0%': { transform: 'translateY(100%)' },
+          '100%': { transform: 'translateY(0)' },
+        },
+        'scaleIn': {
+          '0%': { opacity: '0', transform: 'scale(0.9)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'shimmer': {
+          '0%': { backgroundPosition: '-1000px 0' },
+          '100%': { backgroundPosition: '1000px 0' },
+        },
+        'pulse-glow': {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(37, 99, 235, 0.4)' },
+          '50%': { boxShadow: '0 0 0 15px rgba(37, 99, 235, 0)' },
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        'spin-slow': {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
         },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'fadeInUp': 'fadeInUp 0.5s ease-out forwards',
+        'fadeInUp': 'fadeInUp 0.6s ease-out forwards',
+        'fadeInDown': 'fadeInDown 0.6s ease-out forwards',
+        'fadeInLeft': 'fadeInLeft 0.6s ease-out forwards',
+        'fadeInRight': 'fadeInRight 0.6s ease-out forwards',
+        'slideUp': 'slideUp 0.5s ease-out forwards',
+        'scaleIn': 'scaleIn 0.4s ease-out forwards',
+        'shimmer': 'shimmer 2s infinite linear',
+        'pulse-glow': 'pulse-glow 2s infinite',
+        'float': 'float 3s ease-in-out infinite',
+        'spin-slow': 'spin-slow 8s linear infinite',
       },
     },
   },

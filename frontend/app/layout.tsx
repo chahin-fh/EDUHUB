@@ -2,16 +2,18 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
-import Navigation from "@/components/navigation";
+import Sidebar from "@/components/sidebar";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/components/theme-provider";
 import ChatWidget from "@/components/chat-widget";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "EduHub - Find Your Perfect Mentor",
+  title: "EduHub - Votre Plateforme d'Apprentissage",
   description:
-    "Connect with industry experts and accelerate your learning journey on EduHub",
+    "Connectez-vous avec des mentors passionnés et accélérez votre apprentissage sur EduHub",
   generator: "EduHub",
   icons: {
     icon: "/favicon.ico",
@@ -25,16 +27,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
       <body
         className={`${inter.className} antialiased min-h-screen flex flex-col`}
       >
-        <AuthProvider>
-          <Navigation />
-          <main className="flex-1 pt-16 md:pt-20">{children}</main>
-          <Analytics />
-          <ChatWidget />
-        </AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange={false}
+        >
+          <AuthProvider>
+            <Sidebar />
+            <main className="flex-1 lg:ml-64">{children}</main>
+            <Analytics />
+            <ChatWidget />
+            <Toaster position="bottom-right" richColors closeButton />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
