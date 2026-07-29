@@ -34,6 +34,7 @@ import {
   AnimatedCard,
 } from "@/components/animated-section";
 import EstablishmentManager from "@/components/admin/establishment-manager";
+import SubjectManager from "@/components/admin/subject-manager";
 
 interface User {
   username: string;
@@ -214,8 +215,9 @@ export default function AdminDashboard() {
             <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-1.5 shadow-sm inline-flex">
               {[
                 { id: "overview", label: "Vue d'ensemble", icon: Activity },
-                { id: "establishments", label: "Établissements", icon: Building },
-              ].map((tab) => (
+              { id: "establishments", label: "Établissements", icon: Building },
+              { id: "subjects", label: "Matières", icon: BookOpen },
+            ].map((tab) => (
                 <motion.button
                   key={tab.id}
                   whileHover={{ scale: 1.02 }}
@@ -382,6 +384,17 @@ export default function AdminDashboard() {
                 exit={{ opacity: 0, y: -20 }}
               >
                 <EstablishmentManager />
+              </motion.div>
+            )}
+
+            {activeTab === "subjects" && (
+              <motion.div
+                key="subjects"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <SubjectManager />
               </motion.div>
             )}
           </AnimatePresence>

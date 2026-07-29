@@ -15,7 +15,7 @@ interface Mentor {
   email: string;
   avatar?: string;
   bio?: string;
-  expertise: string[];
+  expertise?: string[];
   verified: boolean;
   role: string;
 }
@@ -49,7 +49,7 @@ export default function MentorsDisplay({
 
           // Extract unique subjects from mentors
           const uniqueSubjects: string[] = Array.from(
-            new Set(data.flatMap((mentor: Mentor) => mentor.expertise))
+            new Set(data.flatMap((mentor: Mentor) => mentor.expertise || []))
           );
           setSubjects(uniqueSubjects);
         }
@@ -157,7 +157,7 @@ export default function MentorsDisplay({
                       )}
 
                       {/* Expertise */}
-                      {mentor.expertise.length > 0 && (
+                      {mentor.expertise && mentor.expertise.length > 0 && (
                         <div className="mt-2">
                           <div className="flex flex-wrap gap-1">
                             {mentor.expertise.slice(0, 3).map((exp, index) => (
