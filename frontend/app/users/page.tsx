@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition, AnimatedSection, StaggerContainer, StaggerItem, AnimatedCard } from "@/components/animated-section";
+import { getExpertiseLabel, type ExpertiseItem } from "@/lib/utils";
 
 interface User {
   _id: string;
@@ -37,7 +38,7 @@ interface User {
   role: "admin" | "user";
   isMonitor: boolean;
   monitorProfile?: {
-    expertise: string[];
+    expertise: ExpertiseItem[];
     verified: boolean;
     rating: number;
     coursesCreated: number;
@@ -87,6 +88,9 @@ export default function UsersPage() {
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
 
+  // Evite le double-fetch initial (React StrictMode execute les effets 2x en dev)
+  const didInit = useRef(false);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchTerm(searchInput);
@@ -103,7 +107,9 @@ export default function UsersPage() {
         u.name?.toLowerCase().includes(searchLower) ||
         u.username?.toLowerCase().includes(searchLower) ||
         u.email?.toLowerCase().includes(searchLower) ||
-        u.monitorProfile?.expertise?.some((exp) => exp.toLowerCase().includes(searchLower)) ||
+        u.monitorProfile?.expertise?.some((exp) =>
+          getExpertiseLabel(exp).toLowerCase().includes(searchLower)
+        ) ||
         u.bio?.toLowerCase().includes(searchLower)
     );
   }, [users, searchTerm]);
@@ -120,50 +126,37 @@ export default function UsersPage() {
       if (selectedRole) params.append("role", selectedRole);
       if (selectedStatus) params.append("status", selectedStatus);
 
-      let retryCount = 0;
-      const maxRetries = 3;
-      const retryDelay = 1000;
-
-      while (retryCount <= maxRetries) {
-        try {
-          const response = await fetch(`http://localhost:5000/api/usersList?${params}`, {
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          });
-          if (!response.ok) {
-            const errorText = await response.text();
-            if (response.status === 429) {
-              retryCount++;
-              if (retryCount <= maxRetries) {
-                await new Promise((r) => setTimeout(r, retryDelay * retryCount));
-                continue;
-              }
-              throw new Error("Trop de requêtes. Veuillez patienter.");
-            }
-            if (response.status === 401) {
-              localStorage.removeItem("authToken");
-              localStorage.removeItem("user");
-              router.push("/connexion");
-              throw new Error("Token invalide");
-            }
-            throw new Error(`Erreur: ${response.status}`);
-          }
-          const data = await response.json();
-          if (data.success) {
-            setUsers(data.users);
-            setAllUsers(data.users);
-            setSubjects(data.subjects || []);
-            setTotalPages(data.pagination.pages);
-            setTotalUsers(data.pagination.total);
-            setError("");
-            return;
-          } else {
-            setError(data.message || "Erreur");
-            return;
-          }
-        } catch (fetchError: any) {
-          if (retryCount <= maxRetries && fetchError.message.includes("429")) continue;
-          throw fetchError;
+      // Pas de boucle de retry sur 429 : chaque nouvelle requête compte aussi dans le
+      // rate-limiter et aggrave le problème. On affiche simplement le message d'erreur.
+      const response = await fetch(`http://localhost:5000/api/usersList?${params}`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error(
+            "Trop de requêtes. Veuillez patienter quelques minutes avant de réessayer."
+          );
         }
+        if (response.status === 401) {
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("user");
+          router.push("/connexion");
+          throw new Error("Token invalide");
+        }
+        throw new Error(`Erreur: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data.success) {
+        setUsers(data.users);
+        setAllUsers(data.users);
+        setSubjects(data.subjects || []);
+        setTotalPages(data.pagination.pages);
+        setTotalUsers(data.pagination.total);
+        setError("");
+        return;
+      } else {
+        setError(data.message || "Erreur");
+        return;
       }
     } catch (err: any) {
       console.error(err);
@@ -206,14 +199,40 @@ export default function UsersPage() {
   useEffect(() => {
     if (!isAuthenticated) { setAuthLoading(false); return; }
     if (user?.role !== "admin") { router.push("/"); return; }
-    setAuthLoading(false);
-    fetchUsers();
-    fetchStats();
+    // Ne s'exécute qu'une seule fois (StrictMode en dev exécute les effets 2x)
+    if (!didInit.current) {
+      didInit.current = true;
+      setAuthLoading(false);
+      fetchStats();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user, router]);
 
+  // Chargement initial des utilisateurs (une seule fois, après l'auth)
   useEffect(() => {
-    if (isAuthenticated && user?.role === "admin" && !authLoading) fetchUsers();
-  }, [searchTerm, selectedSubject, selectedRole, selectedStatus, sortBy, sortOrder, currentPage, authLoading, fetchUsers, isAuthenticated, user?.role]);
+    if (
+      didInit.current &&
+      !authLoading &&
+      isAuthenticated &&
+      user?.role === "admin"
+    ) {
+      fetchUsers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
+
+  // Refetch à chaque changement de filtre / pagination / tri
+  useEffect(() => {
+    if (
+      didInit.current &&
+      !authLoading &&
+      isAuthenticated &&
+      user?.role === "admin"
+    ) {
+      fetchUsers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, selectedSubject, selectedRole, selectedStatus, sortBy, sortOrder, currentPage]);
 
   if (authLoading) {
     return (
@@ -476,7 +495,7 @@ export default function UsersPage() {
                               <div className="flex flex-wrap gap-1">
                                 {u.monitorProfile.expertise.slice(0, 2).map((exp, idx) => (
                                   <Badge key={idx} variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                                    {exp}
+                                    {getExpertiseLabel(exp)}
                                   </Badge>
                                 ))}
                                 {u.monitorProfile.expertise.length > 2 && (

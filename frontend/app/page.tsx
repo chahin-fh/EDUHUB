@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -113,9 +113,44 @@ const features = [
   },
 ];
 
+interface HomeStats {
+  users: number;
+  monitors: number;
+  courses: number;
+  subjects: number;
+}
+
+const statItems: {
+  key: keyof HomeStats;
+  label: string;
+  icon: any;
+  suffix?: string;
+}[] = [
+  { key: "users", label: "Étudiants actifs", icon: Users, suffix: "+" },
+  { key: "monitors", label: "Mentors", icon: GraduationCap, suffix: "+" },
+  { key: "courses", label: "Cours disponibles", icon: BookOpen, suffix: "+" },
+  { key: "subjects", label: "Matières", icon: Star, suffix: "+" },
+];
+
 export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [homeStats, setHomeStats] = useState<HomeStats | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/stats/home");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) setHomeStats(data.stats);
+        }
+      } catch (err) {
+        console.error("Error fetching home stats:", err);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const handleSearch = useCallback((query: string) => {
     try {
@@ -188,6 +223,38 @@ export default function Home() {
                 </StaggerItem>
               ))}
             </StaggerContainer>
+          </div>
+        </AnimatedSection>
+
+        {/* Real-time Stats Band */}
+        <AnimatedSection direction="none" className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-8 md:p-12 shadow-2xl shadow-blue-500/20">
+              <div className="absolute -top-24 -right-24 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
+              <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
+              <div className="relative grid grid-cols-2 lg:grid-cols-4 gap-8">
+                {statItems.map((stat, i) => (
+                  <motion.div
+                    key={stat.key}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="text-center"
+                  >
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm mb-3">
+                      <stat.icon className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-3xl md:text-4xl font-bold text-white">
+                      {homeStats
+                        ? `${homeStats[stat.key].toLocaleString("fr-FR")}${stat.suffix || ""}`
+                        : "—"}
+                    </div>
+                    <div className="mt-1 text-sm text-blue-100">{stat.label}</div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
           </div>
         </AnimatedSection>
 

@@ -45,6 +45,8 @@ interface Subject {
   updatedAt: string;
 }
 
+
+
 export default function SubjectManager() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -340,6 +342,8 @@ export default function SubjectManager() {
                       placeholder="ex: Sciences, Langues, Art..."
                     />
                   </div>
+
+
                 </>
               )}
 
@@ -440,12 +444,9 @@ export default function SubjectManager() {
                           <CardHeader className="pb-2">
                             <div className="flex justify-between items-start">
                               <div className="flex items-center gap-3">
-                                <motion.div
-                                  whileHover={{ scale: 1.1, rotate: 5 }}
-                                  className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 text-white"
-                                >
-                                  <BookOpen className="h-5 w-5" />
-                                </motion.div>
+                                <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500">
+                                  <BookOpen className="h-5 w-5 text-white" />
+                                </div>
                                 <div>
                                   <CardTitle className="text-base">{subject.name}</CardTitle>
                                   {subject.slug && (

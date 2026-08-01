@@ -4,6 +4,19 @@ const User = require("../models/User");
 const Subject = require("../models/Subject");
 const protect = require("../middleware/authMiddleware");
 
+// Le frontend envoie le NOM de la matière (ex: "Mathématiques") dans le filtre
+// `subject`, alors que `monitorProfile.expertise.subject` stocke un ObjectId.
+// Ce helper résout le nom (ou un ObjectId déjà valide) vers l'ObjectId attendu
+// par la requête Mongoose, pour éviter une CastError -> 500.
+async function resolveSubjectToId(subject) {
+  if (!subject) return null;
+  // Déjà un ObjectId valide (24 hex) -> utilisé tel quel
+  if (/^[0-9a-fA-F]{24}$/.test(subject)) return subject;
+  // Sinon c'est un nom -> chercher la matière correspondante
+  const doc = await Subject.findOne({ name: subject }).lean();
+  return doc ? doc._id : null;
+}
+
 // @desc    Get all mentors (public endpoint)
 // @route   GET /api/usersList/public
 // @access  Public
@@ -34,13 +47,29 @@ router.get("/public", async (req, res) => {
         { username: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
         { bio: { $regex: search, $options: "i" } },
-        { "monitorProfile.expertise.subject": { $regex: search, $options: "i" } },
+        // `expertise.subject` est un ObjectId : on résout les noms de matières
+        // correspondant à la recherche au lieu d'un $regex invalide sur un ObjectId
       ];
+      const searchSubjectIds = await Subject.find({
+        name: { $regex: search, $options: "i" },
+      })
+        .select("_id")
+        .lean();
+      if (searchSubjectIds.length > 0) {
+        query.$or.push({
+          "monitorProfile.expertise.subject": {
+            $in: searchSubjectIds.map((s) => s._id),
+          },
+        });
+      }
     }
 
-    // Filter by subject (expertise)
+    // Filter by subject (expertise) - le frontend envoie le NOM de la matière
     if (subject) {
-      query["monitorProfile.expertise.subject"] = subject;
+      const subjectId = await resolveSubjectToId(subject);
+      // Matière introuvable -> $in: [] pour ne rien matcher (et non null,
+      // qui ferait ressortir les utilisateurs sans expertise)
+      query["monitorProfile.expertise.subject"] = subjectId || { $in: [] };
     }
 
     // Filter by rating
@@ -171,13 +200,29 @@ router.get("/", protect, async (req, res) => {
         { username: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
         { bio: { $regex: search, $options: "i" } },
-        { "monitorProfile.expertise.subject": { $regex: search, $options: "i" } },
+        // `expertise.subject` est un ObjectId : on résout les noms de matières
+        // correspondant à la recherche au lieu d'un $regex invalide sur un ObjectId
       ];
+      const searchSubjectIds = await Subject.find({
+        name: { $regex: search, $options: "i" },
+      })
+        .select("_id")
+        .lean();
+      if (searchSubjectIds.length > 0) {
+        query.$or.push({
+          "monitorProfile.expertise.subject": {
+            $in: searchSubjectIds.map((s) => s._id),
+          },
+        });
+      }
     }
 
-    // Filter by subject (expertise)
+    // Filter by subject (expertise) - le frontend envoie le NOM de la matière
     if (subject) {
-      query["monitorProfile.expertise.subject"] = subject;
+      const subjectId = await resolveSubjectToId(subject);
+      // Matière introuvable -> $in: [] pour ne rien matcher (et non null,
+      // qui ferait ressortir les utilisateurs sans expertise)
+      query["monitorProfile.expertise.subject"] = subjectId || { $in: [] };
     }
 
     // Filter by role

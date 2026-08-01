@@ -3,11 +3,6 @@ const User = require("../models/User");
 // @desc    Middleware to check if user's email is verified
 const requireEmailVerification = async (req, res, next) => {
   try {
-    // Skip verification for Google OAuth users and admin routes
-    if (req.user && req.user.googleId) {
-      return next();
-    }
-
     // Check if user's email is verified
     if (req.user && !req.user.emailVerified) {
       return res.status(403).json({

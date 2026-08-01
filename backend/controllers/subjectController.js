@@ -17,11 +17,12 @@ exports.getSubjects = async (req, res) => {
 // @route   POST /api/subjects
 // @access  Private/Admin
 exports.addSubject = async (req, res) => {
-  const { name } = req.body;
+  const { name, category } = req.body;
 
   try {
     const newSubject = new Subject({
-      name
+      name,
+      category: category || '',
     });
 
     const subject = await newSubject.save();
@@ -39,14 +40,15 @@ exports.addSubject = async (req, res) => {
 // @route   PUT /api/subjects/:id
 // @access  Private/Admin
 exports.updateSubject = async (req, res) => {
-  const { name } = req.body;
+  const { name, category, icon } = req.body;
 
   try {
     let subject = await Subject.findById(req.params.id);
 
     if (!subject) return res.status(404).json({ msg: 'Subject not found' });
 
-    subject.name = name;
+    if (name !== undefined) subject.name = name;
+    if (category !== undefined) subject.category = category;
     await subject.save();
 
     res.json(subject);

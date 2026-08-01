@@ -1,8 +1,6 @@
 const express = require("express");
 const router = express.Router();
 
-const passport = require("passport");
-const jwt = require("jsonwebtoken");
 const {
   registerUser,
   loginUser,
@@ -32,28 +30,6 @@ router.post("/reset-password", resetPassword);
 // Email verification
 router.get("/verify-email/:token", verifyEmail);
 router.post("/resend-verification", resendVerificationEmail);
-
-// Google Auth
-router.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
-
-router.get(
-  "/google/callback",
-  passport.authenticate("google", {
-    failureRedirect: "/connexion",
-    session: false,
-  }),
-  (req, res) => {
-    const token = jwt.sign({ id: req.user.id }, process.env.JWT_SECRET, {
-      expiresIn: "30d",
-    });
-
-    // Send token to frontend and redirect
-    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
-  }
-);
 
 // @desc    Get user data
 // @route   GET /api/auth/me

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,8 +14,24 @@ import {
   Loader2,
   AlertCircle,
   Share2,
+  CreditCard,
+  CheckCircle2,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Course {
   _id: string;
@@ -50,17 +66,24 @@ interface Course {
   level?: string;
   language?: string;
   price?: number;
+  discountPrice?: number;
 }
 
 export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { isAuthenticated } = useAuth();
   const courseId = params.id as string;
 
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [isEnrolling, setIsEnrolling] = useState(false);
+  const [checkingEnrollment, setCheckingEnrollment] = useState(true);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -94,6 +117,59 @@ export default function CourseDetailPage() {
     }
   }, [courseId]);
 
+  // Vérifier le statut d'inscription
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (!isAuthenticated || !courseId) {
+        setCheckingEnrollment(false);
+        return;
+      }
+      try {
+        const token = localStorage.getItem("authToken");
+        const res = await fetch(
+          `http://localhost:5000/api/courses/my/enrolled`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const enrolled = data.enrollments?.some(
+            (e: any) => e.course?._id === courseId
+          );
+          setIsEnrolled(enrolled);
+        }
+      } catch (err) {
+        console.error("Error checking enrollment:", err);
+      } finally {
+        setCheckingEnrollment(false);
+      }
+    };
+    checkEnrollment();
+  }, [courseId, isAuthenticated]);
+
+  // Gérer les query params de retour Stripe
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      setIsEnrolled(true);
+      toast.success("Paiement réussi ! Vous êtes maintenant inscrit au cours.", {
+        duration: 5000,
+      });
+      // Nettoyer l'URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete("success");
+      window.history.replaceState({}, "", url.toString());
+    }
+    if (searchParams.get("cancelled") === "true") {
+      toast.error("Paiement annulé. Vous n'avez pas été débité.", {
+        duration: 5000,
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("cancelled");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [searchParams]);
+
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return "0 B";
     const k = 1024;
@@ -111,6 +187,76 @@ export default function CourseDetailPage() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const handlePayment = async () => {
+    if (!isAuthenticated) {
+      router.push("/connexion");
+      return;
+    }
+    try {
+      setIsEnrolling(true);
+      const token = localStorage.getItem("authToken");
+      const res = await fetch(
+        "http://localhost:5000/api/payment/create-checkout-session",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ courseId }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Erreur de paiement");
+      }
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Erreur lors du paiement"
+      );
+    } finally {
+      setIsEnrolling(false);
+      setShowPaymentDialog(false);
+    }
+  };
+
+  const handleEnrollFree = async () => {
+    if (!isAuthenticated) {
+      router.push("/connexion");
+      return;
+    }
+    try {
+      setIsEnrolling(true);
+      const token = localStorage.getItem("authToken");
+      const res = await fetch(
+        `http://localhost:5000/api/courses/${courseId}/enroll`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const data = await res.json();
+      if (data.success) {
+        setIsEnrolled(true);
+        toast.success("Inscription réussie !", { duration: 4000 });
+      } else {
+        throw new Error(data.message || "Erreur d'inscription");
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Erreur lors de l'inscription"
+      );
+    } finally {
+      setIsEnrolling(false);
+    }
   };
 
   const handleDownload = async () => {
@@ -408,6 +554,144 @@ export default function CourseDetailPage() {
                 </p>
               )}
             </div>
+
+            {/* Inscription / Paiement */}
+            {!checkingEnrollment && (
+              <>
+                {isEnrolled ? (
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 shadow-lg text-white">
+                    <div className="flex items-center gap-3 mb-3">
+                      <CheckCircle2 className="h-8 w-8" />
+                      <h3 className="text-xl font-bold">Inscrit !</h3>
+                    </div>
+                    <p className="text-white/90 text-sm mb-4">
+                      Vous êtes inscrit à ce cours. Bon apprentissage !
+                    </p>
+                    <Button
+                      onClick={() => router.push("/dashboard")}
+                      className="w-full bg-white text-green-700 hover:bg-gray-100 font-semibold rounded-lg transition-all"
+                      size="lg"
+                    >
+                      Voir ma progression
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <AlertDialog
+                      open={showPaymentDialog}
+                      onOpenChange={setShowPaymentDialog}
+                    >
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="lg"
+                          disabled={isEnrolling}
+                          className={`w-full rounded-xl font-semibold py-6 transition-all transform hover:scale-105 text-lg shadow-xl ${
+                            course.price && course.price > 0
+                              ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                              : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                          }`}
+                        >
+                          {isEnrolling ? (
+                            <>
+                              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                              {course.price && course.price > 0
+                                ? "Redirection vers le paiement..."
+                                : "Inscription en cours..."}
+                            </>
+                          ) : (
+                            <>
+                              {course.price && course.price > 0 ? (
+                                <>
+                                  <CreditCard className="h-5 w-5 mr-2" />
+                                  S&apos;inscrire –{" "}
+                                  {course.discountPrice || course.price} TND
+                                </>
+                              ) : (
+                                <>
+                                  <Lock className="h-5 w-5 mr-2" />
+                                  S&apos;inscrire gratuitement
+                                </>
+                              )}
+                            </>
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Confirmer votre inscription
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {course.price && course.price > 0
+                              ? `Vous allez être redirigé vers Stripe pour payer ${
+                                  course.discountPrice || course.price
+                                } TND.`
+                              : "Ce cours est gratuit. Confirmez pour vous inscrire immédiatement."}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="bg-gray-50 rounded-lg p-4 my-4">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium text-gray-900">
+                              {course.title || course.courseName}
+                            </span>
+                            <span className="font-bold text-lg">
+                              {course.price && course.price > 0
+                                ? `${course.discountPrice || course.price} TND`
+                                : "Gratuit"}
+                            </span>
+                          </div>
+                        </div>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={
+                              course.price && course.price > 0
+                                ? handlePayment
+                                : handleEnrollFree
+                            }
+                            disabled={isEnrolling}
+                            className={
+                              course.price && course.price > 0
+                                ? "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                                : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                            }
+                          >
+                            {isEnrolling ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                {course.price && course.price > 0
+                                  ? "Paiement..."
+                                  : "Inscription..."}
+                              </>
+                            ) : course.price && course.price > 0 ? (
+                              "Payer avec Stripe"
+                            ) : (
+                              "Confirmer l'inscription"
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
+                    {/* Liens rapides après inscription */}
+                    <div className="mt-3 text-center">
+                      <p className="text-xs text-gray-400">
+                        {course.price && course.price > 0
+                          ? "Paiement sécurisé par Stripe"
+                          : "Aucun paiement nécessaire"}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Charge indication */}
+            {checkingEnrollment && (
+              <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg flex justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+              </div>
+            )}
 
             {/* Share Card */}
             <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg">

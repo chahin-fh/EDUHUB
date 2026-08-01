@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Star, Github, Linkedin, Twitter, MessageCircle } from "lucide-react"
+import { getExpertiseLabel, type ExpertiseItem } from "@/lib/utils"
 
 interface User {
   _id: string;
@@ -14,7 +15,7 @@ interface User {
   createdAt: string;
   avatar?: string;
   monitorProfile?: {
-    expertise: string[];
+    expertise: ExpertiseItem[];
     rating: number;
     verified: boolean;
   };
@@ -28,7 +29,9 @@ export default function MentorCard({ user }: MentorCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
-  const profession = user.monitorProfile?.expertise?.[0] || "Mentor";
+  const profession = user.monitorProfile?.expertise?.[0]
+    ? getExpertiseLabel(user.monitorProfile.expertise[0])
+    : "Mentor";
   const rating = user.monitorProfile?.rating || 0;
   const description = user.bio || "No description provided.";
   const avatar = user.avatar || "👤"; // Default avatar if none provided

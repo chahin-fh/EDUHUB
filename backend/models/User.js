@@ -42,7 +42,6 @@ const availabilitySlotSchema = new mongoose.Schema({
 
 const userSchema = new mongoose.Schema(
   {
-    googleId: { type: String, unique: true, sparse: true },
     username: { type: String },
     name: {
       type: String,
@@ -60,9 +59,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: function () {
-        return !this.googleId;
-      },
+      required: true,
       minlength: 8,
       select: false,
     },

@@ -69,7 +69,8 @@ export default function ProfilePage() {
   const levels = ["Débutant", "Intermédiaire", "Avancé"];
 
   const handleSubjectClick = (subject: string) => {
-    setSelectedSubject(subject);
+    // Toggle : re-cliquer sur la matière active la désélectionne
+    setSelectedSubject((prev) => (prev === subject ? "" : subject));
     if (activeTab !== "explore") {
       setActiveTab("explore");
     }
@@ -736,8 +737,35 @@ export default function ProfilePage() {
 
             {/* Explore Tab */}
             <TabsContent value="explore" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <SubjectsDisplay onSubjectClick={handleSubjectClick} />
+              {/* Banner */}
+              <AnimatedSection>
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-8 text-white shadow-xl">
+                  <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/10" />
+                  <div className="absolute bottom-0 right-24 w-24 h-24 rounded-full bg-white/10" />
+                  <motion.span
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium mb-3"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                    Explorer
+                  </motion.span>
+                  <h2 className="text-2xl font-bold mb-2">
+                    Explorez la communaut&eacute;
+                  </h2>
+                  <p className="text-blue-100 text-sm max-w-lg">
+                    Parcourez les mati&egrave;res disponibles et trouvez les
+                    &eacute;tudiants et mentors qui peuvent vous aider &agrave;
+                    progresser.
+                  </p>
+                </div>
+              </AnimatedSection>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <SubjectsDisplay
+                  onSubjectClick={handleSubjectClick}
+                  selectedSubject={selectedSubject}
+                />
                 <MentorsDisplay selectedSubject={selectedSubject} />
               </div>
             </TabsContent>
