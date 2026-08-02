@@ -15,6 +15,9 @@ import {
   Sparkles,
   Activity,
   Star,
+  UserCog,
+  ShieldCheck,
+  // CreditCard, // ⚠️ Paiement commenté
 } from "lucide-react";
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
@@ -29,18 +32,10 @@ import {
 } from "@/components/animated-section";
 import EstablishmentManager from "@/components/admin/establishment-manager";
 import SubjectManager from "@/components/admin/subject-manager";
-
-function timeAgo(dateStr?: string) {
-  if (!dateStr) return "";
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "À l'instant";
-  if (minutes < 60) return `Il y a ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Il y a ${hours} h`;
-  const days = Math.floor(hours / 24);
-  return `Il y a ${days} j`;
-}
+import UserManager from "@/components/admin/user-manager";
+import ReviewManager from "@/components/admin/review-manager";
+// import PaymentManager from "@/components/admin/payment-manager"; // ⚠️ Paiement commenté
+import { timeAgo } from "@/lib/utils";
 
 const defaultStatsCards = [
   { title: "Utilisateurs", value: "—", icon: Users, change: "Chargement...", trend: "up" as const, color: "from-purple-500 to-purple-600" },
@@ -269,12 +264,15 @@ export default function AdminDashboard() {
 
           {/* Tabs */}
           <AnimatedSection delay={0.1} className="mb-8">
-            <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-1.5 shadow-sm inline-flex">
+            <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-1.5 shadow-sm inline-flex flex-wrap gap-1">
               {[
                 { id: "overview", label: "Vue d'ensemble", icon: Activity },
-              { id: "establishments", label: "Établissements", icon: Building },
-              { id: "subjects", label: "Matières", icon: BookOpen },
-            ].map((tab) => (
+                { id: "users", label: "Utilisateurs", icon: UserCog },
+                { id: "reviews", label: "Avis", icon: ShieldCheck },
+                // { id: "payments", label: "Paiements", icon: CreditCard }, // ⚠️ Paiement commenté
+                { id: "establishments", label: "Établissements", icon: Building },
+                { id: "subjects", label: "Matières", icon: BookOpen },
+              ].map((tab) => (
                 <motion.button
                   key={tab.id}
                   whileHover={{ scale: 1.02 }}
@@ -432,6 +430,41 @@ export default function AdminDashboard() {
                 </div>
               </motion.div>
             )}
+
+            {activeTab === "users" && (
+              <motion.div
+                key="users"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <UserManager />
+              </motion.div>
+            )}
+
+            {activeTab === "reviews" && (
+              <motion.div
+                key="reviews"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <ReviewManager />
+              </motion.div>
+            )}
+
+            {/* ⚠️ Onglet des paiements commenté (partie paiement désactivée)
+            {activeTab === "payments" && (
+              <motion.div
+                key="payments"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <PaymentManager />
+              </motion.div>
+            )}
+            */}
 
             {activeTab === "establishments" && (
               <motion.div

@@ -8,7 +8,14 @@ const path = require("path");
 // @access  Private
 exports.uploadCourse = async (req, res) => {
   try {
-    const { courseName, description } = req.body;
+    const {
+      courseName,
+      description,
+      category,
+      level,
+      price,
+      language,
+    } = req.body;
     const user = req.user;
 
     // Validation
@@ -18,6 +25,47 @@ exports.uploadCourse = async (req, res) => {
 
     if (!req.file) {
       return res.status(400).json({ message: "Document file is required" });
+    }
+
+    const VALID_CATEGORIES = [
+      "Développement Web",
+      "Data Science",
+      "Design",
+      "Business",
+      "Marketing",
+      "Langues",
+      "Autre",
+    ];
+    const VALID_LEVELS = ["Débutant", "Intermédiaire", "Avancé"];
+
+    // Catégorie (validation stricte contre l'enum du modèle)
+    let finalCategory = "Autre";
+    if (category && VALID_CATEGORIES.includes(String(category))) {
+      finalCategory = String(category);
+    }
+
+    // Niveau
+    let finalLevel = "Débutant";
+    if (level && VALID_LEVELS.includes(String(level))) {
+      finalLevel = String(level);
+    }
+
+    // Prix : 0 si gratuit, sinon nombre positif (en EUR)
+    let finalPrice = 0;
+    if (price !== undefined && price !== null && price !== "") {
+      const parsedPrice = Number(price);
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        return res
+          .status(400)
+          .json({ message: "Le prix doit être un nombre positif" });
+      }
+      finalPrice = Math.round(parsedPrice * 100) / 100;
+    }
+
+    // Langue : normalisée par le modèle (trim + défaut) — aucun code imposé
+    let finalLanguage = "Français";
+    if (language && String(language).trim()) {
+      finalLanguage = String(language).trim();
     }
 
     // Create course document
@@ -38,10 +86,10 @@ exports.uploadCourse = async (req, res) => {
         email: user.email,
       },
       status: "published", // Use published instead of active
-      price: 0, // Free course by default
-      category: "Autre", // Default category
-      level: "Débutant", // Default level
-      language: "fr", // Use 'fr' instead of 'Français'
+      price: finalPrice,
+      category: finalCategory,
+      level: finalLevel,
+      language: finalLanguage,
     });
 
     res.status(201).json({
@@ -176,6 +224,16 @@ exports.enrollCourse = async (req, res) => {
     if (!course) {
       return res.status(404).json({ message: "Course not found" });
     }
+
+    // ⚠️ Blocage des cours payants commenté (partie paiement désactivée) :
+    // tous les cours sont inscriptibles directement, sans paiement.
+    // if (course.price > 0) {
+    //   return res
+    //     .status(402)
+    //     .json({
+    //       message: "Ce cours est payant, veuillez procéder au paiement",
+    //     });
+    // }
 
     const enrollment = await Enrollment.findOneAndUpdate(
       { student: req.user._id, course: req.params.id },
@@ -386,6 +444,29 @@ exports.downloadCourse = async (req, res) => {
 
     if (!course) {
       return res.status(404).json({ message: "Course not found" });
+    }
+
+    // Seuls les étudiants inscrits à CE cours peuvent télécharger le document.
+    // Le créateur du cours et les admins sont exemptés.
+    const isOwner =
+      (course.uploadedBy &&
+        course.uploadedBy.toString() === req.user._id.toString()) ||
+      (course.instructor &&
+        course.instructor.toString() === req.user._id.toString());
+
+    if (req.user.role !== "admin" && !isOwner) {
+      const enrollment = await Enrollment.findOne({
+        student: req.user._id,
+        course: req.params.id,
+        status: { $in: ["active", "completed"] },
+      });
+
+      if (!enrollment) {
+        return res.status(403).json({
+          message:
+            "Vous devez être inscrit à ce cours pour télécharger son contenu",
+        });
+      }
     }
 
     // Check for documentFile first, then pdfFile for backward compatibility

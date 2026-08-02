@@ -81,7 +81,7 @@ const courseSchema = new mongoose.Schema(
     discountPrice: Number,
     currency: {
       type: String,
-      default: "TND",
+      default: "EUR",
     },
 
     // Category
@@ -188,7 +188,14 @@ const courseSchema = new mongoose.Schema(
 );
 
 // Index for search
-courseSchema.index({ title: "text", description: "text", tags: "text" });
+// ⚠️ language_override: "docLang" (champ inexistant) → MongoDB ne valide plus le
+// champ `language` contre ses codes de langue. On peut donc stocker n'importe
+// quelle valeur : « Français », « Arabe », etc. La recherche texte utilise la
+// langue par défaut (english) sans erreur.
+courseSchema.index(
+  { title: "text", description: "text", tags: "text" },
+  { language_override: "docLang" }
+);
 
 // Keep legacy and new fields in sync
 courseSchema.pre("validate", function (next) {
@@ -197,6 +204,13 @@ courseSchema.pre("validate", function (next) {
 
   if (!this.instructor && this.uploadedBy) this.instructor = this.uploadedBy;
   if (!this.uploadedBy && this.instructor) this.uploadedBy = this.instructor;
+
+  // Normaliser la langue : trim + valeur par défaut si vide
+  // (aucune contrainte de code : l'index texte utilise language_override)
+  if (this.language !== undefined) {
+    const trimmedLang = String(this.language).trim();
+    this.language = trimmedLang || "Français";
+  }
 
   next();
 });

@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const protect = require("../middleware/authMiddleware");
+const requireEmailVerification = require("../middleware/emailVerification");
+// ⚠️ Restriction « payer pour contacter les moniteurs » commentée :
+// const requirePaidEnrollment = require("../middleware/enrollment");
 const {
   findMentorsBySubject,
   getMatchingSubjects,
@@ -26,12 +29,23 @@ router.get("/requests", protect, getMyMatchRequests);
 
 // @route   POST /api/matching/request
 // @desc    Create a match request
-// @access  Private
-router.post("/request", protect, createMatchRequest);
+// @access  Private (email vérifié + paiement d'un cours requis)
+router.post(
+  "/request",
+  protect,
+  requireEmailVerification,
+  // requirePaidEnrollment, // ⚠️ Restriction paiement commentée
+  createMatchRequest
+);
 
 // @route   PATCH /api/matching/request/:id
 // @desc    Accept or decline a match request
-// @access  Private
-router.patch("/request/:id", protect, respondToMatchRequest);
+// @access  Private (email vérifié requis)
+router.patch(
+  "/request/:id",
+  protect,
+  requireEmailVerification,
+  respondToMatchRequest
+);
 
 module.exports = router;

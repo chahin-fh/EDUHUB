@@ -26,6 +26,9 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { AnimatedSection, StaggerContainer, StaggerItem, AnimatedCard, PageTransition } from "@/components/animated-section";
 import { toast } from "sonner";
+import { io } from "socket.io-client";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
 
 interface MatchRequestData {
   _id: string;
@@ -158,7 +161,7 @@ function EmptyState({ icon: Icon, title, desc, action }: { icon: any; title: str
 }
 
 export default function DemandesPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const router = useRouter();
   const [sentRequests, setSentRequests] = useState<MatchRequestData[]>([]);
   const [receivedRequests, setReceivedRequests] = useState<MatchRequestData[]>([]);
@@ -166,10 +169,40 @@ export default function DemandesPage() {
   const [error, setError] = useState("");
   const [processingId, setProcessingId] = useState<string | null>(null);
 
+  const currentUserId = (user as any)?._id || (user as any)?.id || "";
+
   useEffect(() => {
     if (!isAuthenticated) { router.push("/connexion"); return; }
     fetchRequests();
   }, [isAuthenticated]);
+
+  // Notification temps réel quand un mentor répond à une de mes demandes
+  useEffect(() => {
+    if (!isAuthenticated || !currentUserId) return;
+
+    const socket = io(API_BASE);
+    socket.emit("join", currentUserId);
+
+    socket.on("match-request-updated", (data: any) => {
+      const { status, message } = data;
+      if (status === "accepted") {
+        toast.success(message || "Votre demande a été acceptée !", {
+          duration: 5000,
+        });
+      } else if (status === "declined") {
+        toast.info(message || "Votre demande a été refusée", {
+          duration: 4000,
+        });
+      }
+      // Rafraîchir la liste des demandes envoyées
+      fetchRequests();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, currentUserId]);
 
   const fetchRequests = async () => {
     try {

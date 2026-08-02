@@ -16,9 +16,19 @@ import {
   Loader2,
   MessageSquare,
   ChevronLeft,
+  Check,
+  CheckCheck,
+  Smile,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { WebRTCCall } from "@/components/webrtc-call";
+import {
+  EmojiPicker,
+  groupReactions,
+  type MessageReaction,
+} from "@/components/chat-emoji-picker";
+import { toast } from "sonner";
 import { PageTransition, AnimatedSection } from "@/components/animated-section";
 
 interface Participant {
@@ -54,6 +64,9 @@ interface Message {
   };
   text: string;
   createdAt: string;
+  readBy?: string[];
+  status?: "sent" | "seen";
+  reactions?: MessageReaction[];
 }
 
 export default function MessagesPage() {
@@ -70,8 +83,52 @@ export default function MessagesPage() {
   const [callUserId, setCallUserId] = useState<string | null>(null);
   const [callUserName, setCallUserName] = useState("");
   const [callUserAvatar, setCallUserAvatar] = useState("");
+  const [emojiPickerFor, setEmojiPickerFor] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Ouvrir directement une conversation avec un utilisateur passé en query (?user=id)
+  const openConversationWithUser = async (userId: string) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const res = await fetch("http://localhost:5000/api/chat/conversations", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.error(
+          "Erreur création conversation:",
+          data.message || data.error || res.statusText
+        );
+        return;
+      }
+
+      const data = await res.json();
+      const conversation: Conversation = data.conversation;
+      if (!conversation?._id) return;
+
+      // Ajouter la conversation à la liste si absente, puis la sélectionner
+      setConversations((prev) =>
+        prev.some((c) => c._id === conversation._id)
+          ? prev
+          : [conversation, ...prev]
+      );
+      setSelectedConversation(conversation);
+
+      // Nettoyer l'URL pour éviter de re-déclencher au refresh
+      const url = new URL(window.location.href);
+      url.searchParams.delete("user");
+      window.history.replaceState({}, "", url.toString());
+    } catch (err) {
+      console.error("Erreur ouverture conversation:", err);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -79,12 +136,32 @@ export default function MessagesPage() {
       return;
     }
     fetchConversations();
+
+    // Si on arrive depuis une carte mentor (?user=id), ouvrir la conversation
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const targetUserId = params.get("user");
+      if (targetUserId) {
+        openConversationWithUser(targetUserId);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   useEffect(() => {
     if (selectedConversation) {
       fetchMessages(selectedConversation._id);
     }
+  }, [selectedConversation]);
+
+  // Rafraîchir les messages toutes les 5 s pour synchroniser les statuts
+  // (envoyé / vu) et les réactions
+  useEffect(() => {
+    if (!selectedConversation) return;
+    const interval = window.setInterval(() => {
+      fetchMessages(selectedConversation._id);
+    }, 5000);
+    return () => window.clearInterval(interval);
   }, [selectedConversation]);
 
   useEffect(() => {
@@ -166,6 +243,59 @@ export default function MessagesPage() {
       console.error("Error sending message:", err);
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  const toggleReaction = async (messageId: string, emoji: string) => {
+    if (!selectedConversation) return;
+    try {
+      const token = localStorage.getItem("authToken");
+      const res = await fetch(
+        `http://localhost:5000/api/chat/conversations/${selectedConversation._id}/messages/${messageId}/reactions`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ emoji }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Erreur de réaction");
+      setMessages((prev) =>
+        prev.map((m) => (m._id === messageId ? data.message : m))
+      );
+    } catch (err) {
+      console.error("Error toggling reaction:", err);
+      toast.error(
+        err instanceof Error ? err.message : "Erreur lors de la réaction"
+      );
+    }
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    if (!selectedConversation) return;
+    try {
+      const token = localStorage.getItem("authToken");
+      const res = await fetch(
+        `http://localhost:5000/api/chat/conversations/${selectedConversation._id}/messages/${messageId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Suppression impossible");
+      setMessages((prev) => prev.filter((m) => m._id !== messageId));
+      fetchConversations();
+    } catch (err) {
+      console.error("Error deleting message:", err);
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Impossible de supprimer ce message"
+      );
     }
   };
 
@@ -355,7 +485,22 @@ export default function MessagesPage() {
                 <div className="space-y-3 max-w-3xl mx-auto">
                   <AnimatePresence initial={false}>
                     {messages.map((message) => {
-                      const isMe = message.sender._id === currentUser?.id || message.sender._id === currentUser?._id;
+                      const isMe =
+                        message.sender._id === currentUser?.id ||
+                        message.sender._id === currentUser?._id;
+                      const otherId = getOtherParticipant(
+                        selectedConversation
+                      )?._id;
+                      const seen =
+                        message.status === "seen" ||
+                        (!!otherId &&
+                          (message.readBy || []).some(
+                            (r) => r.toString() === otherId.toString()
+                          ));
+                      const reactions = groupReactions(
+                        message.reactions,
+                        (currentUser?.id || currentUser?._id || "").toString()
+                      );
                       return (
                         <motion.div
                           key={message._id}
@@ -372,13 +517,80 @@ export default function MessagesPage() {
                               </AvatarFallback>
                             </Avatar>
                           )}
-                          <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm ${
-                            isMe ? "bg-blue-500 text-white rounded-br-md" : "bg-white text-gray-900 rounded-bl-md border border-gray-100"
-                          }`}>
-                            <p className="text-sm leading-relaxed">{message.text}</p>
-                            <p className={`text-xs mt-1 ${isMe ? "text-blue-100" : "text-gray-400"}`}>
-                              {formatTime(message.createdAt)}
-                            </p>
+                          <div className="group relative max-w-[70%]">
+                            <div className={`px-4 py-2.5 rounded-2xl shadow-sm ${
+                              isMe ? "bg-blue-500 text-white rounded-br-md" : "bg-white text-gray-900 rounded-bl-md border border-gray-100"
+                            }`}>
+                              <p className="text-sm leading-relaxed">{message.text}</p>
+                              <div className={`flex items-center justify-end gap-1 text-xs mt-1 ${isMe ? "text-blue-100" : "text-gray-400"}`}>
+                                <span>{formatTime(message.createdAt)}</span>
+                                {isMe &&
+                                  (seen ? (
+                                    <CheckCheck className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <Check className="h-3.5 w-3.5" />
+                                  ))}
+                              </div>
+                              {reactions.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {reactions.map((r) => (
+                                    <button
+                                      key={r.emoji}
+                                      type="button"
+                                      onClick={() =>
+                                        toggleReaction(message._id, r.emoji)
+                                      }
+                                      className={`rounded-full px-2 py-0.5 text-xs font-medium transition-colors ${
+                                        r.reactedByMe
+                                          ? "bg-blue-600 text-white"
+                                          : isMe
+                                          ? "bg-white/20 text-white hover:bg-white/30"
+                                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                      }`}
+                                    >
+                                      {r.emoji} {r.count}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Actions au survol : réagir / supprimer (avant lecture) */}
+                            <div className="absolute -top-3 right-0 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEmojiPickerFor(
+                                    emojiPickerFor === message._id
+                                      ? null
+                                      : message._id
+                                  )
+                                }
+                                title="Réagir"
+                                className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm hover:text-blue-600"
+                              >
+                                <Smile className="h-4 w-4" />
+                              </button>
+                              {isMe && !seen && (
+                                <button
+                                  type="button"
+                                  onClick={() => deleteMessage(message._id)}
+                                  title="Supprimer (avant lecture)"
+                                  className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm hover:text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+
+                            {emojiPickerFor === message._id && (
+                              <EmojiPicker
+                                onSelect={(emoji) => {
+                                  toggleReaction(message._id, emoji);
+                                  setEmojiPickerFor(null);
+                                }}
+                              />
+                            )}
                           </div>
                         </motion.div>
                       );

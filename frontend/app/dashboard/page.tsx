@@ -28,6 +28,7 @@ import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { ActivityChart } from "@/components/dashboard/activity-chart";
+import MentorOverview from "@/components/dashboard/mentor-overview";
 import { motion } from "framer-motion";
 import { PageTransition, AnimatedSection, StaggerContainer, StaggerItem, AnimatedCard } from "@/components/animated-section";
 
@@ -121,6 +122,8 @@ export default function DashboardPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const [dashStats, setDashStats] = useState<DashboardStats | null>(null);
+  const isMonitorOrAdmin = user?.role === "admin" || !!user?.isMonitor;
+  const [view, setView] = useState<"student" | "mentor">("mentor");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -129,7 +132,10 @@ export default function DashboardPage() {
   }, [isLoading, isAuthenticated, router]);
 
   useEffect(() => {
+    // Ne charger les stats étudiant que si la vue étudiant est affichée
+    // (évite une requête inutile en vue moniteur, et réduit le risque de 429)
     if (!isAuthenticated) return;
+    if (isMonitorOrAdmin && view !== "student") return;
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem("authToken");
@@ -145,7 +151,7 @@ export default function DashboardPage() {
       }
     };
     fetchStats();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isMonitorOrAdmin, view]);
 
   if (isLoading) {
     return (
@@ -216,14 +222,51 @@ export default function DashboardPage() {
               </h1>
               <p className="text-gray-500 mt-1">Voici un aperçu de votre progression</p>
             </div>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button onClick={() => router.push("/cours/upload")} className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl shadow-lg shadow-blue-200">
-                <Plus className="h-4 w-4" />
-                Nouveau cours
-              </Button>
-            </motion.div>
+            {isMonitorOrAdmin && (
+              <div className="flex items-center gap-2">
+                {/* Sélecteur de vue Étudiant / Moniteur */}
+                <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-1 shadow-sm inline-flex">
+                  <button
+                    onClick={() => setView("student")}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                      view === "student"
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    Étudiant
+                  </button>
+                  <button
+                    onClick={() => setView("mentor")}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                      view === "mentor"
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    Moniteur
+                  </button>
+                </div>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button onClick={() => router.push("/cours/upload")} className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl shadow-lg shadow-blue-200">
+                    <Plus className="h-4 w-4" />
+                    Nouveau cours
+                  </Button>
+                </motion.div>
+              </div>
+            )}
           </AnimatedSection>
 
+          {/* Vue Moniteur (stats mentor, cours, inscriptions) */}
+          {isMonitorOrAdmin && view === "mentor" && (
+            <div className="mb-10">
+              <MentorOverview />
+            </div>
+          )}
+
+          {/* Vue Étudiant (stats de progression) */}
+          {(!isMonitorOrAdmin || view === "student") && (
+            <>
           {/* Stats */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
             {statCards.map((stat, index) => (
@@ -342,6 +385,8 @@ export default function DashboardPage() {
               </Card>
             </AnimatedCard>
           </div>
+            </>
+          )}
         </div>
       </div>
     </PageTransition>

@@ -1,7 +1,22 @@
+/* =====================================================================
+   ⚠️ PARTIE PAIEMENT — CODE COMMENTÉ (Stripe)
+   ---------------------------------------------------------------------
+   La partie paiement a été mise en commentaire sur demande.
+   Pour réactiver : retirez les marqueurs de commentaire ci-dessous.
+   ===================================================================== */
+
+/*
 const stripe = require("../config/stripe");
 const Course = require("../models/Course");
 const Enrollment = require("../models/Enrollment");
 const { AppError } = require("../middleware/errorHandler");
+
+// Devise de facturation (Stripe) : EUR par défaut, configurable via .env
+// (STRIPE_CURRENCY=eur|usd|tnd). Note : TND a 3 décimales (millimes),
+// EUR/USD en ont 2 (centimes) — d'où le tableau des unités.
+const CURRENCY_UNITS = { tnd: 1000, usd: 100, eur: 100 };
+const checkoutCurrency = (process.env.STRIPE_CURRENCY || "eur").toLowerCase();
+const currencyUnit = CURRENCY_UNITS[checkoutCurrency] || 100;
 
 // @desc    Récupérer l'historique des paiements de l'utilisateur
 // @route   GET /api/payment/history
@@ -64,15 +79,15 @@ exports.createCheckoutSession = async (req, res, next) => {
       line_items: [
         {
           price_data: {
-            currency: "tnd",
+            currency: checkoutCurrency,
             product_data: {
               name: course.title,
               description: course.description,
               images: [course.thumbnail],
             },
             unit_amount: Math.round(
-              (course.discountPrice || course.price) * 1000
-            ), // Stripe utilise millimes
+              (course.discountPrice || course.price) * currencyUnit
+            ), // Montant en plus petite unité (centimes pour EUR/USD)
           },
           quantity: 1,
         },
@@ -115,37 +130,36 @@ exports.webhookCheckout = async (req, res) => {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
+    const { studentId, courseId } = session.metadata;
 
-    // Créer ou mettre à jour l'inscription (évite doublons si webhook rejoué)
-    const enrollment = await Enrollment.findOneAndUpdate(
-      {
-        student: session.metadata.studentId,
-        course: session.metadata.courseId,
-      },
-      {
-        $set: {
-          paymentStatus: "completed",
-          amountPaid: session.amount_total / 1000, // Convertir de millimes
-          paymentMethod: "card",
-          transactionId: session.payment_intent,
-          paymentDate: new Date(),
-          status: "active",
-        },
-        $setOnInsert: {
-          student: session.metadata.studentId,
-          course: session.metadata.courseId,
-        },
-      },
-      { upsert: true, new: true }
-    );
+    // Idempotence réelle : on vérifie d'abord l'existence de l'inscription.
+    // Si elle existe déjà (webhook rejoué par Stripe, même rapidement), on ne fait
+    // qu'une mise à jour des informations de paiement, SANS ré-incrémenter
+    // studentsEnrolled. L'incrément ne se produit que lors de la création.
+    const existingEnrollment = await Enrollment.findOne({
+      student: studentId,
+      course: courseId,
+    });
 
-    // N'incrémenter le compteur que si l'inscription est nouvelle (pas un doublon)
-    // Si createdAt === updatedAt à ~1s près, c'est une création
-    const isNewEnrollment =
-      Math.abs(enrollment.createdAt - enrollment.updatedAt) < 2000;
+    const paymentFields = {
+      paymentStatus: "completed",
+      // Convertir la plus petite unité (centimes pour EUR/USD, millimes pour TND)
+      amountPaid: session.amount_total / currencyUnit,
+      paymentMethod: "card",
+      transactionId: session.payment_intent,
+      paymentDate: new Date(),
+      status: "active",
+    };
 
-    if (isNewEnrollment) {
-      await Course.findByIdAndUpdate(session.metadata.courseId, {
+    if (existingEnrollment) {
+      await Enrollment.updateOne({ _id: existingEnrollment._id }, paymentFields);
+    } else {
+      await Enrollment.create({
+        student: studentId,
+        course: courseId,
+        ...paymentFields,
+      });
+      await Course.findByIdAndUpdate(courseId, {
         $inc: { studentsEnrolled: 1 },
       });
     }
@@ -153,3 +167,4 @@ exports.webhookCheckout = async (req, res) => {
 
   res.json({ received: true });
 };
+*/

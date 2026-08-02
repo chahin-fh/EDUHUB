@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require("../models/User");
 const Subject = require("../models/Subject");
 const protect = require("../middleware/authMiddleware");
+const { adminOnly } = protect;
 
 // Le frontend envoie le NOM de la matière (ex: "Mathématiques") dans le filtre
 // `subject`, alors que `monitorProfile.expertise.subject` stocke un ObjectId.
@@ -176,8 +177,8 @@ router.get("/public", async (req, res) => {
 
 // @desc    Get all users with search and filtering
 // @route   GET /api/usersList
-// @access  Private
-router.get("/", protect, async (req, res) => {
+// @access  Private/Admin (la page frontend /users est admin-only)
+router.get("/", protect, adminOnly, async (req, res) => {
   try {
     const {
       search,
@@ -311,8 +312,8 @@ router.get("/", protect, async (req, res) => {
 
 // @desc    Get user statistics
 // @route   GET /api/usersList/stats
-// @access  Private
-router.get("/stats", protect, async (req, res) => {
+// @access  Private/Admin
+router.get("/stats", protect, adminOnly, async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
     const adminUsers = await User.countDocuments({ role: "admin" });
@@ -350,9 +351,9 @@ router.get("/stats", protect, async (req, res) => {
   }
 });
 
-// @desc    Get user by ID
+// @desc    Get user by ID (profil public consulté par la page /users/[id])
 // @route   GET /api/usersList/:id
-// @access  Private
+// @access  Private (tout utilisateur authentifié)
 router.get("/:id", protect, async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
@@ -399,10 +400,10 @@ router.get("/:id", protect, async (req, res) => {
   }
 });
 
-// @desc    Get all users (public endpoint)
+// @desc    Get all users (endpoint admin)
 // @route   GET /api/usersList/all-users
-// @access  Public
-router.get("/all-users", async (req, res) => {
+// @access  Private/Admin (le frontend ne consomme pas cette route publiquement)
+router.get("/all-users", protect, adminOnly, async (req, res) => {
   try {
     const { search, page = 1, limit = 12 } = req.query;
 
@@ -412,12 +413,11 @@ router.get("/all-users", async (req, res) => {
       isActive: true,
     };
 
-    // Search by name, username, or email
+    // Search by name, username
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: "i" } },
         { username: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
       ];
     }
 

@@ -1,3 +1,13 @@
+/* =====================================================================
+   ⚠️ PARTIE PAIEMENT — CODE COMMENTÉ (Stripe)
+   ---------------------------------------------------------------------
+   La partie paiement a été mise en commentaire sur demande.
+   Pour réactiver : retirez les marqueurs de commentaire ci-dessous
+   (ainsi que dans paymentController.js, routes/payment.js, index.js,
+   et les parties paiement du frontend).
+   ===================================================================== */
+
+/*
 const stripeKey = process.env.STRIPE_SECRET_KEY;
 
 let stripe;
@@ -24,3 +34,4 @@ try {
 }
 
 module.exports = stripe;
+*/

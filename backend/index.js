@@ -29,6 +29,9 @@ const io = socketIo(server, {
     cors: corsOptions,
 });
 
+// Expose io aux contrôleurs (ex: notification de statut de demande)
+app.set("io", io);
+
 // Socket.io for Signaling
 io.on("connection", (socket) => {
     console.log("New client connected:", socket.id);
@@ -68,6 +71,18 @@ io.on("connection", (socket) => {
         io.to(data.to).emit("ice-candidate", data.candidate);
     });
 
+    socket.on("call-declined", (data) => {
+        // data: { to, from }
+        console.log(`Call declined by ${data.from}, notifying ${data.to}`);
+        io.to(data.to).emit("call-declined", { from: data.from });
+    });
+
+    socket.on("call-busy", (data) => {
+        // data: { to, from }
+        console.log(`Call busy from ${data.from}, notifying ${data.to}`);
+        io.to(data.to).emit("call-busy", { from: data.from });
+    });
+
     socket.on("disconnect", () => {
         console.log("Client disconnected:", socket.id);
     });
@@ -78,9 +93,9 @@ app.use(helmet());
 app.use(cors(corsOptions));
 app.use(limiter);
 
-// Stripe webhook (doit être AVANT bodyParser pour recevoir le body brut / signature)
-const paymentController = require("./controllers/paymentController");
-app.post("/api/payment/webhook", express.raw({ type: "application/json" }), paymentController.webhookCheckout);
+// ⚠️ Webhook Stripe commenté (partie paiement désactivée)
+// const paymentController = require("./controllers/paymentController");
+// app.post("/api/payment/webhook", express.raw({ type: "application/json" }), paymentController.webhookCheckout);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -144,8 +159,10 @@ const contactRoutes = require("./routes/contact");
 const chatRoutes = require("./routes/chat");
 const matchingRoutes = require("./routes/matching");
 const reviewsRoutes = require("./routes/reviews");
-const paymentRoutes = require("./routes/payment");
+const courseReviewsRoutes = require("./routes/courseReviews");
+// const paymentRoutes = require("./routes/payment"); // ⚠️ Paiement commenté
 const statsRoutes = require("./routes/stats");
+const adminRoutes = require("./routes/admin");
 
 app.use("/api/subjects", require("./routes/subjects"));
 
@@ -161,8 +178,10 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/matching", matchingRoutes);
 app.use("/api/reviews", reviewsRoutes);
-app.use("/api/payment", paymentRoutes);
+app.use("/api/course-reviews", courseReviewsRoutes);
+// app.use("/api/payment", paymentRoutes); // ⚠️ Paiement commenté
 app.use("/api/stats", statsRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Serve uploaded files
 app.use("/uploads", express.static("uploads"));

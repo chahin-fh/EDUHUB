@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  Check,
+  CheckCheck,
+  // CreditCard, // ⚠️ Paiement commenté
+  // Lock, // ⚠️ Paiement commenté
   MessageCircle,
   Mic,
   MicOff,
@@ -12,11 +16,20 @@ import {
   Plus,
   Search,
   Send,
+  Smile,
+  Trash2,
   X,
 } from "lucide-react";
 import { io, Socket } from "socket.io-client";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useCanContactMonitors } from "@/hooks/use-active-enrollment";
+// import PaymentDialog from "@/components/payment-dialog"; // ⚠️ Paiement commenté
+import {
+  EmojiPicker,
+  groupReactions,
+  type MessageReaction,
+} from "@/components/chat-emoji-picker";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -30,6 +43,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 type UserLite = {
   _id: string;
@@ -45,6 +59,8 @@ type MessageType = {
   sender: UserLite;
   createdAt: string;
   readBy?: string[];
+  status?: "sent" | "seen";
+  reactions?: MessageReaction[];
 };
 
 type ConversationType = {
@@ -99,6 +115,8 @@ async function apiFetch<T>(
 
 export default function ChatWidget() {
   const { user, isAuthenticated } = useAuth();
+  const { canContactMonitors, loading: enrollmentLoading } =
+    useCanContactMonitors();
 
   const currentUserId = useMemo(() => {
     const anyUser: any = user;
@@ -127,6 +145,8 @@ export default function ChatWidget() {
   const [isPickerLoading, setIsPickerLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  // const [paymentOpen, setPaymentOpen] = useState(false); // ⚠️ Paiement commenté
+  const [emojiPickerFor, setEmojiPickerFor] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -135,6 +155,7 @@ export default function ChatWidget() {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
+  const callStatusRef = useRef<string>("idle");
 
   const [callStatus, setCallStatus] = useState<
     "idle" | "calling" | "incoming" | "active"
@@ -149,6 +170,10 @@ export default function ChatWidget() {
   const [isMuted, setIsMuted] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+
+  useEffect(() => {
+    callStatusRef.current = callStatus;
+  }, [callStatus]);
 
   const selectedConversation = useMemo(() => {
     if (!selectedConversationId) return null;
@@ -352,6 +377,49 @@ export default function ChatWidget() {
     scrollToBottom();
   };
 
+  const formatTime = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "";
+    }
+  };
+
+  const toggleReaction = async (messageId: string, emoji: string) => {
+    if (!selectedConversationId) return;
+    try {
+      const data = await apiFetch<{ message: MessageType }>(
+        `/api/chat/conversations/${selectedConversationId}/messages/${messageId}/reactions`,
+        {
+          method: "POST",
+          body: JSON.stringify({ emoji }),
+        }
+      );
+      setMessages((prev) =>
+        prev.map((m) => (m._id === messageId ? data.message : m))
+      );
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur lors de la réaction");
+    }
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    if (!selectedConversationId) return;
+    try {
+      await apiFetch(
+        `/api/chat/conversations/${selectedConversationId}/messages/${messageId}`,
+        { method: "DELETE" }
+      );
+      setMessages((prev) => prev.filter((m) => m._id !== messageId));
+      refreshConversations().catch(() => undefined);
+    } catch (e: any) {
+      toast.error(e?.message || "Impossible de supprimer ce message");
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated) {
       setIsOpen(false);
@@ -380,9 +448,18 @@ export default function ChatWidget() {
     const socket = io(API_BASE);
     socketRef.current = socket;
 
+    socket.on("connect", () => {
+      socket.emit("join", currentUserId);
+    });
     socket.emit("join", currentUserId);
 
     socket.on("incoming-call", (data: any) => {
+      // Déjà en appel ? Signaler "occupé" au lieu d'empiler un 2e appel
+      if (callStatusRef.current !== "idle") {
+        socket.emit("call-busy", { to: data.from, from: currentUserId });
+        toast.error("Appel entrant ignoré (déjà en ligne)", { duration: 2500 });
+        return;
+      }
       setIncomingCallData({
         fromId: data.from,
         fromName: data.fromName,
@@ -391,6 +468,22 @@ export default function ChatWidget() {
         isScreenShare: data.isScreenShare,
       });
       setCallStatus("incoming");
+    });
+
+    socket.on("call-declined", () => {
+      toast.info("Appel refusé par l'interlocuteur", { duration: 3000 });
+      endCallInternally();
+    });
+
+    socket.on("call-busy", () => {
+      toast.info("L'interlocuteur est déjà en ligne", { duration: 3000 });
+      endCallInternally();
+    });
+
+    socket.on("disconnect", () => {
+      if (callStatusRef.current !== "idle") {
+        endCallInternally();
+      }
     });
 
     socket.on("call-accepted", async (signal: any) => {
@@ -489,7 +582,22 @@ export default function ChatWidget() {
     } catch (err) {
       console.error("Error starting call:", err);
       setCallStatus("idle");
+      toast.error(
+        "Micro ou partage d'écran indisponible. Vérifiez les permissions du navigateur.",
+        { duration: 4000 }
+      );
     }
+  };
+
+  const declineIncomingCall = () => {
+    const targetId = incomingCallData?.fromId;
+    if (targetId && socketRef.current) {
+      socketRef.current.emit("call-declined", {
+        to: targetId,
+        from: currentUserId,
+      });
+    }
+    endCallInternally();
   };
 
   const acceptCall = async () => {
@@ -692,7 +800,7 @@ export default function ChatWidget() {
                         </Button>
                       </>
                     )}
-                    {view === "list" && (
+                    {view === "list" && canContactMonitors && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -743,15 +851,39 @@ export default function ChatWidget() {
 
                 {view === "list" && (
                   <div className="space-y-3">
-                    <div className="relative">
-                      <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Rechercher un utilisateur..."
-                        className="pl-8"
-                      />
-                    </div>
+                    {/* ⚠️ Paiement commenté : la restriction a été supprimée
+                    {!canContactMonitors && !enrollmentLoading && (
+                      <div className="mb-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                        <div className="flex items-start gap-2">
+                          <Lock className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          <span>
+                            Vous devez avoir payé pour un cours pour contacter
+                            les moniteurs.
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => setPaymentOpen(true)}
+                          className="mt-2 w-full h-8 gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white"
+                        >
+                          <CreditCard className="h-3.5 w-3.5" />
+                          Payer pour débloquer
+                        </Button>
+                      </div>
+                    )}
+                    */}
+                    {canContactMonitors && (
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Rechercher un utilisateur..."
+                          className="pl-8"
+                        />
+                      </div>
+                    )}
 
                     {searchResults.length > 0 && (
                       <div className="rounded-md border">
@@ -870,6 +1002,17 @@ export default function ChatWidget() {
                           {messages.map((m) => {
                             const isMine =
                               m.sender?._id?.toString() === currentUserId;
+                            const otherId = otherParticipant?._id?.toString();
+                            const seen =
+                              m.status === "seen" ||
+                              (!!otherId &&
+                                (m.readBy || []).some(
+                                  (r) => r.toString() === otherId
+                                ));
+                            const reactions = groupReactions(
+                              m.reactions,
+                              currentUserId
+                            );
 
                             return (
                               <div
@@ -881,13 +1024,94 @@ export default function ChatWidget() {
                               >
                                 <div
                                   className={cn(
-                                    "max-w-[80%] rounded-lg px-3 py-2 text-sm",
-                                    isMine
-                                      ? "bg-primary text-primary-foreground"
-                                      : "bg-muted"
+                                    "group relative max-w-[80%]",
+                                    isMine ? "items-end" : "items-start"
                                   )}
                                 >
-                                  {m.text}
+                                  <div
+                                    className={cn(
+                                      "rounded-lg px-3 py-2 text-sm",
+                                      isMine
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted"
+                                    )}
+                                  >
+                                    {m.text}
+                                    <div
+                                      className={cn(
+                                        "mt-0.5 flex items-center justify-end gap-1 text-[10px]",
+                                        isMine
+                                          ? "text-primary-foreground/70"
+                                          : "text-muted-foreground"
+                                      )}
+                                    >
+                                      <span>{formatTime(m.createdAt)}</span>
+                                      {isMine &&
+                                        (seen ? (
+                                          <CheckCheck className="h-3 w-3" />
+                                        ) : (
+                                          <Check className="h-3 w-3" />
+                                        ))}
+                                    </div>
+                                    {reactions.length > 0 && (
+                                      <div className="mt-1 flex flex-wrap gap-1">
+                                        {reactions.map((r) => (
+                                          <button
+                                            key={r.emoji}
+                                            type="button"
+                                            onClick={() =>
+                                              toggleReaction(m._id, r.emoji)
+                                            }
+                                            className={cn(
+                                              "rounded-full px-1.5 py-0.5 text-xs font-medium transition-colors",
+                                              r.reactedByMe
+                                                ? "bg-blue-600 text-white"
+                                                : "bg-gray-200/70 text-gray-700 hover:bg-gray-300/80"
+                                            )}
+                                          >
+                                            {r.emoji} {r.count}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Actions au survol : réagir / supprimer */}
+                                  <div className="absolute -top-2.5 right-0 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setEmojiPickerFor(
+                                          emojiPickerFor === m._id
+                                            ? null
+                                            : m._id
+                                        )
+                                      }
+                                      title="Réagir"
+                                      className="flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm hover:text-blue-600"
+                                    >
+                                      <Smile className="h-3.5 w-3.5" />
+                                    </button>
+                                    {isMine && !seen && (
+                                      <button
+                                        type="button"
+                                        onClick={() => deleteMessage(m._id)}
+                                        title="Supprimer (avant lecture)"
+                                        className="flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm hover:text-red-600"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {emojiPickerFor === m._id && (
+                                    <EmojiPicker
+                                      onSelect={(emoji) => {
+                                        toggleReaction(m._id, emoji);
+                                        setEmojiPickerFor(null);
+                                      }}
+                                    />
+                                  )}
                                 </div>
                               </div>
                             );
@@ -923,7 +1147,7 @@ export default function ChatWidget() {
                                 size="lg"
                                 variant="destructive"
                                 className="rounded-full h-14 w-14 p-0"
-                                onClick={endCall}
+                                onClick={declineIncomingCall}
                               >
                                 <PhoneOff className="h-6 w-6" />
                               </Button>
@@ -1015,6 +1239,8 @@ export default function ChatWidget() {
         )}
 
       </div>
+
+      {/* <PaymentDialog open={paymentOpen} onOpenChange={setPaymentOpen} /> */}
 
       <Dialog open={isUserPickerOpen} onOpenChange={setIsUserPickerOpen}>
         <DialogContent className="sm:max-w-md">
