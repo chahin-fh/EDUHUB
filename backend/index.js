@@ -99,7 +99,7 @@ const connectDB = async () => {
         const candidates = [
             process.env.MONGODB_URI,
             process.env.MONGO_URL,
-            "mongodb://localhost:27017/EDUHUB",
+            "mongodb://localhost:27017/test",
         ].filter(Boolean);
 
         if (candidates.length === 0) {
