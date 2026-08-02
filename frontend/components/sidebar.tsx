@@ -203,11 +203,6 @@ export default function Sidebar() {
             <div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="focus:outline-none relative w-full"
-                  >
                     <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full">
                       <div className="relative flex-shrink-0">
                         <Avatar className="h-9 w-9 ring-2 ring-blue-100 dark:ring-blue-900 hover:ring-blue-300 transition-all">
@@ -227,63 +222,7 @@ export default function Sidebar() {
                           </p>
                         </div>
                     </div>
-                  </motion.button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  side="right"
-                  className="w-56 border-gray-100 dark:border-gray-800 shadow-xl ml-2"
-                >
-                  <DropdownMenuLabel>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white">
-                          {(user.username || "U").charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold text-sm">{user.username || "User"}</p>
-                        <p className="text-xs text-gray-500 truncate max-w-[140px]">{user.email || ""}</p>
-                      </div>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      <span>Tableau de bord</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile" className="cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Mon Profil</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/demandes" className="cursor-pointer">
-                      <Bell className="mr-2 h-4 w-4" />
-                      <span>Mes demandes</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  {user.role === "admin" && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin" className="cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Admin Dashboard</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={logout}
-                    className="text-red-600 focus:text-red-600 cursor-pointer"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Déconnexion</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
               </DropdownMenu>
             </div>
           ) : (
