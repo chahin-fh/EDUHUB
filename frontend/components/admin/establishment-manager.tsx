@@ -193,7 +193,11 @@ export default function EstablishmentManager() {
       type: establishment.type,
       description: establishment.description,
       address: { ...establishment.address },
-      contact: { ...establishment.contact },
+      contact: {
+        phone: establishment.contact.phone,
+        email: establishment.contact.email,
+        website: establishment.contact.website || "",
+      },
       isActive: establishment.isActive,
       isVerified: establishment.isVerified,
       featured: establishment.featured,

@@ -12,13 +12,12 @@ import {
   Clock,
   Loader2,
   Building,
-  TrendingUp,
   Sparkles,
   Activity,
-  ChevronRight,
   Star,
-  Shield,
-  Zap,
+  UserCog,
+  ShieldCheck,
+  // CreditCard, // ⚠️ Paiement commenté
 } from "lucide-react";
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
@@ -29,18 +28,51 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   PageTransition,
   AnimatedSection,
-  StaggerContainer,
-  StaggerItem,
   AnimatedCard,
 } from "@/components/animated-section";
 import EstablishmentManager from "@/components/admin/establishment-manager";
 import SubjectManager from "@/components/admin/subject-manager";
+import UserManager from "@/components/admin/user-manager";
+import ReviewManager from "@/components/admin/review-manager";
+// import PaymentManager from "@/components/admin/payment-manager"; // ⚠️ Paiement commenté
+import { timeAgo } from "@/lib/utils";
 
-interface User {
-  username: string;
-  email: string;
-  avatar?: string;
-  role: string;
+const defaultStatsCards = [
+  { title: "Utilisateurs", value: "—", icon: Users, change: "Chargement...", trend: "up" as const, color: "from-purple-500 to-purple-600" },
+  { title: "Cours", value: "—", icon: BookOpen, change: "Chargement...", trend: "up" as const, color: "from-blue-500 to-blue-600" },
+  { title: "Messages", value: "—", icon: MessageSquare, change: "Chargement...", trend: "new" as const, color: "from-green-500 to-green-600" },
+  { title: "Taux d'engagement", value: "—", icon: BarChart, change: "Chargement...", trend: "up" as const, color: "from-amber-500 to-amber-600", showProgress: true },
+];
+
+interface RecentActivity {
+  id: string;
+  user: string;
+  action: string;
+  time: string;
+  course?: string;
+  icon: any;
+  color: string;
+}
+
+interface AdminStats {
+  users: {
+    total: number;
+    admin: number;
+    user: number;
+    monitors: number;
+    activeMonitors: number;
+  };
+  courses: { total: number; published: number };
+  enrollments: number;
+  messages: number;
+  subjects: number;
+  establishments: number;
+  reviews: number;
+  engagementRate: number;
+  recentUsers: any[];
+  recentCourses: any[];
+  recentEnrollments: any[];
+  recentMessages: any[];
 }
 
 function StatCard({
@@ -107,9 +139,8 @@ function StatCard({
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { user, isLoading, isAuthenticated, logout } = useAuth();
-  const [userCount, setUserCount] = useState(0);
-  const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   useEffect(() => {
     if (!isLoading) {
@@ -123,19 +154,12 @@ export default function AdminDashboard() {
       const fetchAdminData = async () => {
         try {
           const token = localStorage.getItem("authToken");
-          const usersRes = await fetch("http://localhost:5000/api/users", {
+          const statsRes = await fetch("http://localhost:5000/api/stats/admin", {
             headers: { Authorization: `Bearer ${token}` },
           });
-          if (usersRes.ok) {
-            const usersData = await usersRes.json();
-            setUserCount(usersData.length || 0);
-          }
-          const messagesRes = await fetch("http://localhost:5000/api/messages", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (messagesRes.ok) {
-            const messagesData = await messagesRes.json();
-            setReceivedMessages(messagesData || []);
+          if (statsRes.ok) {
+            const statsData = await statsRes.json();
+            if (statsData.success) setAdminStats(statsData.stats);
           }
         } catch (error) {
           console.error("Error fetching admin data:", error);
@@ -158,18 +182,46 @@ export default function AdminDashboard() {
 
   if (!isAuthenticated || !user || user.role !== "admin") return null;
 
-  const stats = [
-    { title: "Utilisateurs", value: userCount.toString(), icon: Users, change: "+12%", trend: "up" as const, color: "from-purple-500 to-purple-600" },
-    { title: "Cours", value: "89", icon: BookOpen, change: "+5", trend: "up" as const, color: "from-blue-500 to-blue-600" },
-    { title: "Messages", value: receivedMessages.length.toString(), icon: MessageSquare, change: "+3", trend: "new" as const, color: "from-green-500 to-green-600" },
-    { title: "Taux d'engagement", value: "78%", icon: BarChart, change: "+2%", trend: "up" as const, color: "from-amber-500 to-amber-600", showProgress: true },
-  ];
+  const stats = adminStats
+    ? [
+        { title: "Utilisateurs", value: adminStats.users.total.toString(), icon: Users, change: `${adminStats.users.monitors} mentors`, trend: "up" as const, color: "from-purple-500 to-purple-600" },
+        { title: "Cours", value: adminStats.courses.total.toString(), icon: BookOpen, change: `${adminStats.courses.published} publiés`, trend: "up" as const, color: "from-blue-500 to-blue-600" },
+        { title: "Messages", value: adminStats.messages.toString(), icon: MessageSquare, change: `${adminStats.reviews} avis`, trend: "new" as const, color: "from-green-500 to-green-600" },
+        { title: "Taux d'engagement", value: `${adminStats.engagementRate}%`, icon: BarChart, change: `${adminStats.enrollments} inscrits`, trend: "up" as const, color: "from-amber-500 to-amber-600", showProgress: true },
+      ]
+    : defaultStatsCards;
 
-  const recentActivities = [
-    { id: 1, user: "Jean Dupont", action: "a créé un nouveau cours", time: "Il y a 2 minutes", course: "Introduction à React", icon: BookOpen, color: "bg-blue-100 text-blue-600" },
-    { id: 2, user: "Marie Martin", action: "a rejoint la plateforme", time: "Il y a 15 minutes", icon: Users, color: "bg-green-100 text-green-600" },
-    { id: 3, user: "Pierre Durand", action: "a terminé le cours", time: "Il y a 1 heure", course: "Les bases de TypeScript", icon: Star, color: "bg-amber-100 text-amber-600" },
-    { id: 4, user: "Sophie Petit", action: "a posé une question sur", time: "Il y a 3 heures", course: "Débuter avec Next.js", icon: MessageSquare, color: "bg-purple-100 text-purple-600" },
+  const recentActivities: RecentActivity[] = [
+    ...(adminStats?.recentUsers || []).map((u: any) => ({
+      id: `u-${u._id}`,
+      user: u.name || u.username || u.email,
+      action: "a rejoint la plateforme",
+      time: timeAgo(u.createdAt),
+      icon: Users,
+      color: "bg-green-100 text-green-600",
+    })),
+    ...(adminStats?.recentCourses || []).map((c: any) => {
+      const author =
+        c.instructor || c.uploadedBy || c.uploader || null;
+      return {
+        id: `c-${c._id}`,
+        user: author?.name || author?.username || author?.email || "Un enseignant",
+        action: "a créé le cours",
+        time: timeAgo(c.createdAt),
+        course: c.title || c.courseName,
+        icon: BookOpen,
+        color: "bg-blue-100 text-blue-600",
+      };
+    }),
+    ...(adminStats?.recentEnrollments || []).map((e: any) => ({
+      id: `e-${e._id}`,
+      user: e.student?.name || e.student?.username || "Un étudiant",
+      action: "s'est inscrit au cours",
+      time: timeAgo(e.createdAt || e.enrolledAt),
+      course: e.course?.title || e.course?.courseName,
+      icon: Star,
+      color: "bg-amber-100 text-amber-600",
+    })),
   ];
 
   return (
@@ -212,12 +264,15 @@ export default function AdminDashboard() {
 
           {/* Tabs */}
           <AnimatedSection delay={0.1} className="mb-8">
-            <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-1.5 shadow-sm inline-flex">
+            <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-1.5 shadow-sm inline-flex flex-wrap gap-1">
               {[
                 { id: "overview", label: "Vue d'ensemble", icon: Activity },
-              { id: "establishments", label: "Établissements", icon: Building },
-              { id: "subjects", label: "Matières", icon: BookOpen },
-            ].map((tab) => (
+                { id: "users", label: "Utilisateurs", icon: UserCog },
+                { id: "reviews", label: "Avis", icon: ShieldCheck },
+                // { id: "payments", label: "Paiements", icon: CreditCard }, // ⚠️ Paiement commenté
+                { id: "establishments", label: "Établissements", icon: Building },
+                { id: "subjects", label: "Matières", icon: BookOpen },
+              ].map((tab) => (
                 <motion.button
                   key={tab.id}
                   whileHover={{ scale: 1.02 }}
@@ -324,15 +379,15 @@ export default function AdminDashboard() {
                             <MessageSquare className="h-5 w-5 text-green-600" />
                           </div>
                           <div>
-                            <CardTitle>Messages reçus</CardTitle>
-                            <p className="text-sm text-gray-500 mt-0.5">{receivedMessages.length} message(s)</p>
+                            <CardTitle>Messages récents</CardTitle>
+                            <p className="text-sm text-gray-500 mt-0.5">{(adminStats?.recentMessages || []).length} message(s)</p>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="p-4">
                         <div className="space-y-3">
-                          {receivedMessages.length > 0 ? (
-                            receivedMessages.slice(0, 4).map((message, index) => (
+                          {(adminStats?.recentMessages || []).length > 0 ? (
+                            adminStats!.recentMessages.slice(0, 4).map((message, index) => (
                               <motion.div
                                 key={index}
                                 initial={{ opacity: 0, y: 10 }}
@@ -341,17 +396,17 @@ export default function AdminDashboard() {
                                 className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer border border-gray-100"
                               >
                                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                                  {(message.sender || message.email || "?").charAt(0).toUpperCase()}
+                                  {(message.sender?.name || message.sender?.username || message.sender?.email || "?").charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium text-sm text-gray-900 truncate">
-                                    {message.subject || "Sans sujet"}
+                                    {message.sender?.name || message.sender?.username || "Utilisateur"}
                                   </p>
                                   <p className="text-xs text-gray-500 truncate">
-                                    {message.sender || message.email || "Anonyme"}
+                                    {message.text || message.message || message.content || "Nouveau message"}
                                   </p>
                                   <p className="text-xs text-gray-600 line-clamp-2 mt-1">
-                                    {message.message || message.content}
+                                    {timeAgo(message.createdAt)}
                                   </p>
                                 </div>
                               </motion.div>
@@ -375,6 +430,41 @@ export default function AdminDashboard() {
                 </div>
               </motion.div>
             )}
+
+            {activeTab === "users" && (
+              <motion.div
+                key="users"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <UserManager />
+              </motion.div>
+            )}
+
+            {activeTab === "reviews" && (
+              <motion.div
+                key="reviews"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <ReviewManager />
+              </motion.div>
+            )}
+
+            {/* ⚠️ Onglet des paiements commenté (partie paiement désactivée)
+            {activeTab === "payments" && (
+              <motion.div
+                key="payments"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <PaymentManager />
+              </motion.div>
+            )}
+            */}
 
             {activeTab === "establishments" && (
               <motion.div

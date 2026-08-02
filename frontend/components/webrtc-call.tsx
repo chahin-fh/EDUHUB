@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface WebRTCCallProps {
   userId: string;
@@ -54,6 +55,18 @@ export function WebRTCCall({
     signal?: RTCSessionDescriptionInit;
   } | null>(null);
 
+  const isCallActiveRef = useRef(false);
+  const isCallingRef = useRef(false);
+  useEffect(() => {
+    isCallActiveRef.current = isCallActive;
+  }, [isCallActive]);
+  useEffect(() => {
+    isCallingRef.current = isCalling;
+  }, [isCalling]);
+  // Toujours appeler le hangUp le plus récent (évite les closures périmés
+  // dans les handlers socket / connexion WebRTC)
+  const hangUpRef = useRef<(notifyRemote?: boolean) => void>(() => {});
+
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -80,6 +93,12 @@ export function WebRTCCall({
     });
 
     newSocket.on("incoming-call", (data) => {
+      // Déjà en appel ? Signaler "occupé" à l'appelant au lieu d'empiler un 2e appel
+      if (isCallActiveRef.current || isCallingRef.current) {
+        newSocket.emit("call-busy", { to: data.from, from: currentUserId });
+        toast.error("Appel entrant ignoré (déjà en ligne)", { duration: 2500 });
+        return;
+      }
       console.log("Incoming call from:", data.from);
       setIsIncomingCall(true);
       setIncomingCaller({
@@ -89,6 +108,21 @@ export function WebRTCCall({
         isScreenShare: data.isScreenShare,
         signal: data.signal,
       });
+    });
+
+    newSocket.on("call-declined", () => {
+      console.log("Call declined by remote");
+      toast.info("Appel refusé par l'interlocuteur", { duration: 3000 });
+      // Coupe aussi le flux caméra/micro et ferme la connexion locale,
+      // sans renvoyer end-call (l'interlocuteur a déjà refusé)
+      hangUpRef.current(false);
+    });
+
+    newSocket.on("call-busy", () => {
+      console.log("Call target busy");
+      toast.info("L'interlocuteur est déjà en ligne", { duration: 3000 });
+      // Ne PAS renvoyer end-call : l'interlocuteur est occupé sur un autre appel
+      hangUpRef.current(false);
     });
 
     newSocket.on("call-accepted", async (signalData) => {
@@ -108,7 +142,17 @@ export function WebRTCCall({
 
     newSocket.on("call-ended", () => {
       console.log("Call ended by remote");
-      hangUp();
+      hangUpRef.current();
+    });
+
+    // Reconnexion socket : socket.io re-fire "connect" → on re-rejoint la salle
+    // (le listener "connect" ci-dessus couvre déjà ce cas)
+
+    newSocket.on("disconnect", () => {
+      console.log("Socket disconnected (WebRTC)");
+      if (isCallActiveRef.current || isCallingRef.current) {
+        hangUpRef.current();
+      }
     });
 
     newSocket.on("ice-candidate", async (candidate) => {
@@ -126,7 +170,7 @@ export function WebRTCCall({
     setSocket(newSocket);
 
     return () => {
-      hangUp();
+      hangUpRef.current();
       newSocket.disconnect();
     };
   }, [currentUserId]);
@@ -144,6 +188,10 @@ export function WebRTCCall({
       return stream;
     } catch (err) {
       console.error("Error getting local stream:", err);
+      toast.error(
+        "Caméra ou micro indisponible. Vérifiez les permissions du navigateur.",
+        { duration: 4000 }
+      );
       return null;
     }
   }, []);
@@ -179,7 +227,7 @@ export function WebRTCCall({
           pc.connectionState === "failed" ||
           pc.connectionState === "closed"
         ) {
-          hangUp();
+          hangUpRef.current();
         }
       };
 
@@ -257,8 +305,28 @@ export function WebRTCCall({
     }
   }, [getLocalStream, isVideoEnabled, createPeerConnection, socket, incomingCaller]);
 
-  const hangUp = useCallback(() => {
-    if (socket && isCallActive) {
+  // Refus explicite d'un appel entrant : notifie l'appelant (call-declined)
+  // puis nettoie localement SANS renvoyer end-call (isCalling/isCallActive
+  // sont faux côté destinataire, donc hangUp() seul laisserait l'appelant
+  // bloqué sur "Appel en cours...")
+  const declineIncomingCall = useCallback(() => {
+    // Nettoyage local TOUJOURS effectué, même si le socket/incomingCaller
+    // manquent (ex. reconnexion en cours)
+    if (incomingCaller && socket) {
+      socket.emit("call-declined", {
+        to: incomingCaller.from,
+        from: currentUserId,
+      });
+    }
+    hangUpRef.current(false);
+  }, [incomingCaller, socket, currentUserId]);
+
+  const hangUp = useCallback((notifyRemote = true) => {
+    // Notifier l'interlocuteur si l'appel est actif OU encore en sonnerie
+    // (sinon son overlay "Appel entrant" resterait bloqué).
+    // notifyRemote=false pour decline/busy : ne PAS renvoyer end-call à un
+    // interlocuteur occupé (ça couperait son appel avec un tiers).
+    if (notifyRemote && socket && (isCallActive || isCalling)) {
       socket.emit("end-call", { to: userId });
     }
 
@@ -293,7 +361,12 @@ export function WebRTCCall({
     setIsScreenSharing(false);
     setIncomingCaller(null);
     onEndCall?.();
-  }, [socket, isCallActive, userId, onEndCall]);
+  }, [socket, isCallActive, isCalling, userId, onEndCall]);
+
+  // Maintenir hangUpRef à jour à chaque rendu
+  useEffect(() => {
+    hangUpRef.current = hangUp;
+  }, [hangUp]);
 
   const toggleVideo = useCallback(async () => {
     if (localStreamRef.current) {
@@ -420,7 +493,9 @@ export function WebRTCCall({
             )}
           </button>
           <button
-            onClick={hangUp}
+            onClick={() =>
+              isIncomingCall ? declineIncomingCall() : hangUp()
+            }
             className="p-1 hover:bg-red-600 rounded text-gray-400 hover:text-white transition-colors"
           >
             <X className="h-4 w-4" />
@@ -466,7 +541,7 @@ export function WebRTCCall({
                     Accepter
                   </Button>
                   <Button
-                    onClick={hangUp}
+                    onClick={declineIncomingCall}
                     variant="destructive"
                     className="gap-2"
                   >
@@ -485,7 +560,7 @@ export function WebRTCCall({
                   Appel de {remoteUserName}...
                 </p>
                 <Button
-                  onClick={hangUp}
+                  onClick={() => hangUp()}
                   variant="destructive"
                   className="mt-6 gap-2"
                 >
@@ -554,7 +629,7 @@ export function WebRTCCall({
             </button>
 
             <button
-              onClick={hangUp}
+              onClick={() => hangUp()}
               className="p-3 rounded-full bg-red-600 hover:bg-red-700 text-white transition-all"
               title="Raccrocher"
             >

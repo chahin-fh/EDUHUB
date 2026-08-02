@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import MentorCard from "./mentor-card";
 import { Users as UsersIcon } from "lucide-react";
+import { getExpertiseLabel, type ExpertiseItem } from "@/lib/utils";
 
 interface User {
   _id: string;
@@ -15,7 +16,7 @@ interface User {
   createdAt: string;
   avatar?: string;
   monitorProfile?: {
-    expertise: string[];
+    expertise: ExpertiseItem[];
     rating: number;
     verified: boolean;
   };
@@ -68,7 +69,7 @@ export default function UserGrid({ subject, search }: UserGridProps) {
           u.name?.toLowerCase().includes(value) ||
           u.bio?.toLowerCase().includes(value) ||
           u.monitorProfile?.expertise?.some((e) =>
-            e.toLowerCase().includes(value)
+            getExpertiseLabel(e).toLowerCase().includes(value)
           )
       );
     }
@@ -77,7 +78,7 @@ export default function UserGrid({ subject, search }: UserGridProps) {
       const value = subject.toLowerCase();
       filtered = filtered.filter((u) =>
         u.monitorProfile?.expertise?.some((e) =>
-          e.toLowerCase().includes(value)
+          getExpertiseLabel(e).toLowerCase().includes(value)
         )
       );
     }

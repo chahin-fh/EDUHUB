@@ -142,6 +142,7 @@ export function StaggerItem({
 interface AnimatedCardProps {
   children: ReactNode;
   className?: string;
+  delay?: number;
   hoverScale?: boolean;
   hoverLift?: boolean;
   onClick?: () => void;
@@ -150,12 +151,16 @@ interface AnimatedCardProps {
 export function AnimatedCard({
   children,
   className = "",
+  delay = 0,
   hoverScale = true,
   hoverLift = true,
   onClick,
 }: AnimatedCardProps) {
   return (
     <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: "easeOut" }}
       whileHover={
         hoverScale || hoverLift
           ? {
@@ -165,7 +170,6 @@ export function AnimatedCard({
           : undefined
       }
       whileTap={onClick ? { scale: 0.98 } : undefined}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
       onClick={onClick}
       className={className}
     >

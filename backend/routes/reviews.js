@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const protect = require("../middleware/authMiddleware");
+const requireEmailVerification = require("../middleware/emailVerification");
 const {
   createReview,
   getUserReviews,
@@ -10,8 +11,8 @@ const {
 
 // @route   POST /api/reviews
 // @desc    Create a review
-// @access  Private
-router.post("/", protect, createReview);
+// @access  Private (email vérifié requis)
+router.post("/", protect, requireEmailVerification, createReview);
 
 // @route   GET /api/reviews/mine
 // @desc    Get reviews I gave

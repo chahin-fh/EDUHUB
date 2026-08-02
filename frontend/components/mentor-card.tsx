@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type MouseEvent } from "react"
+import { useRouter } from "next/navigation"
 import { Star, Github, Linkedin, Twitter, MessageCircle } from "lucide-react"
+import { getExpertiseLabel, type ExpertiseItem } from "@/lib/utils"
 
 interface User {
   _id: string;
@@ -14,7 +16,7 @@ interface User {
   createdAt: string;
   avatar?: string;
   monitorProfile?: {
-    expertise: string[];
+    expertise: ExpertiseItem[];
     rating: number;
     verified: boolean;
   };
@@ -27,8 +29,21 @@ interface MentorCardProps {
 export default function MentorCard({ user }: MentorCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const router = useRouter()
 
-  const profession = user.monitorProfile?.expertise?.[0] || "Mentor";
+  const goToProfile = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation()
+    router.push(`/users/${user._id}`)
+  }
+
+  const goToMessage = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation()
+    router.push(`/messages?user=${user._id}`)
+  }
+
+  const profession = user.monitorProfile?.expertise?.[0]
+    ? getExpertiseLabel(user.monitorProfile.expertise[0])
+    : "Mentor";
   const rating = user.monitorProfile?.rating || 0;
   const description = user.bio || "No description provided.";
   const avatar = user.avatar || "👤"; // Default avatar if none provided
@@ -88,10 +103,16 @@ export default function MentorCard({ user }: MentorCardProps) {
 
         {/* Buttons */}
         <div className="grid grid-cols-2 gap-3">
-          <button className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition text-sm font-medium">
-            Profile
+          <button
+            onClick={goToProfile}
+            className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition text-sm font-medium hover:scale-[1.03]"
+          >
+            Profil
           </button>
-          <button className="px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-lg transition text-sm font-medium flex items-center justify-center gap-1">
+          <button
+            onClick={goToMessage}
+            className="px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-lg transition text-sm font-medium flex items-center justify-center gap-1 hover:scale-[1.03]"
+          >
             <MessageCircle size={16} />
             <span>Message</span>
           </button>

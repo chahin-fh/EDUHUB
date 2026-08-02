@@ -20,8 +20,13 @@ import {
   X,
   Sparkles,
   ArrowRight,
+  // Lock, // ⚠️ Paiement commenté
+  // CreditCard, // ⚠️ Paiement commenté
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+// ⚠️ Paiement commenté :
+// import { useCanContactMonitors } from "@/hooks/use-active-enrollment";
+// import PaymentDialog from "@/components/payment-dialog";
 import { AnimatedSection, StaggerContainer, StaggerItem, AnimatedCard } from "@/components/animated-section";
 import { toast } from "sonner";
 
@@ -54,6 +59,7 @@ interface UserMentor {
 
 export default function ApprendrePage() {
   const { user, isAuthenticated } = useAuth();
+  // const { canContactMonitors } = useCanContactMonitors(); // ⚠️ Paiement commenté
   const router = useRouter();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [mentors, setMentors] = useState<UserMentor[]>([]);
@@ -63,6 +69,7 @@ export default function ApprendrePage() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
+  // const [paymentOpen, setPaymentOpen] = useState(false); // ⚠️ Paiement commenté
 
   useEffect(() => {
     fetchSubjects();
@@ -292,6 +299,8 @@ export default function ApprendrePage() {
                           ))}
 
                           <div className="mt-auto pt-4">
+                            {/* ⚠️ Paiement commenté : plus de restriction,
+                                le bouton « Demander une session » est toujours affiché */}
                             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                               <Button
                                 onClick={() => handleSendRequest(mentor._id)}
@@ -302,6 +311,36 @@ export default function ApprendrePage() {
                                 <ArrowRight className="h-4 w-4" />
                               </Button>
                             </motion.div>
+                            {/* Ancien bloc (restriction paiement) commenté :
+                            {canContactMonitors ? (
+                              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <Button
+                                  onClick={() => handleSendRequest(mentor._id)}
+                                  className="w-full gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl h-12"
+                                >
+                                  <MessageSquare className="h-4 w-4" />
+                                  Demander une session
+                                  <ArrowRight className="h-4 w-4" />
+                                </Button>
+                              </motion.div>
+                            ) : (
+                              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-center">
+                                <Lock className="h-4 w-4 text-gray-400 mx-auto mb-1.5" />
+                                <p className="text-xs text-gray-500 leading-relaxed mb-3">
+                                  Payez pour un cours pour contacter les
+                                  moniteurs
+                                </p>
+                                <Button
+                                  onClick={() => setPaymentOpen(true)}
+                                  size="sm"
+                                  className="gap-1.5 w-full rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                                >
+                                  <CreditCard className="h-4 w-4" />
+                                  Payer maintenant
+                                </Button>
+                              </div>
+                            )}
+                            */}
                           </div>
                         </CardContent>
                       </Card>
@@ -320,6 +359,8 @@ export default function ApprendrePage() {
           ) : null}
         </AnimatePresence>
       </div>
+
+      {/* <PaymentDialog open={paymentOpen} onOpenChange={setPaymentOpen} /> */}
     </div>
   );
 }

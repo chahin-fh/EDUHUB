@@ -18,5 +18,15 @@ router.post(
   protect,
   chatController.sendMessage
 );
+router.post(
+  "/conversations/:id/messages/:messageId/reactions",
+  protect,
+  chatController.toggleReaction
+);
+router.delete(
+  "/conversations/:id/messages/:messageId",
+  protect,
+  chatController.deleteMessage
+);
 
 module.exports = router;

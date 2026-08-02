@@ -26,9 +26,14 @@ import {
   MessageSquare,
   Phone,
   Send,
+  // Lock, // ⚠️ Paiement commenté
+  // CreditCard, // ⚠️ Paiement commenté
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+// ⚠️ Paiement commenté :
+// import { useCanContactMonitors } from "@/hooks/use-active-enrollment";
+// import PaymentDialog from "@/components/payment-dialog";
 import { RatingStars, ReviewForm } from "@/components/rating-stars";
 import { PageTransition, AnimatedSection, StaggerContainer, StaggerItem, AnimatedCard } from "@/components/animated-section";
 import { toast } from "sonner";
@@ -99,6 +104,7 @@ export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user: currentUser, isAuthenticated } = useAuth();
+  // const { canContactMonitors } = useCanContactMonitors(); // ⚠️ Paiement commenté
   const userId = params.id as string;
 
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -114,6 +120,7 @@ export default function UserDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [sendingReview, setSendingReview] = useState(false);
   const [sendingRequest, setSendingRequest] = useState(false);
+  // const [paymentOpen, setPaymentOpen] = useState(false); // ⚠️ Paiement commenté
 
   useEffect(() => {
     fetchUserDetails();
@@ -357,10 +364,34 @@ export default function UserDetailPage() {
             <div className="flex-shrink-0">
               {!isOwnProfile && isAuthenticated && (
                 <div className="flex flex-col gap-2">
+                  {/* ⚠️ Paiement commenté : le bouton « Demander une session » est toujours affiché */}
                   <Button onClick={handleSendRequest} disabled={sendingRequest} className="gap-2">
                     {sendingRequest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     Demander une session
                   </Button>
+                  {/* Ancien bloc (restriction paiement) commenté :
+                  {canContactMonitors ? (
+                    <Button onClick={handleSendRequest} disabled={sendingRequest} className="gap-2">
+                      {sendingRequest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      Demander une session
+                    </Button>
+                  ) : (
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-500 max-w-[280px]">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Lock className="h-4 w-4 flex-shrink-0" />
+                        Payez pour un cours pour contacter les moniteurs
+                      </div>
+                      <Button
+                        onClick={() => setPaymentOpen(true)}
+                        size="sm"
+                        className="w-full gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        Payer maintenant
+                      </Button>
+                    </div>
+                  )}
+                  */}
                 </div>
               )}
             </div>
@@ -511,10 +542,34 @@ export default function UserDetailPage() {
               <CardContent className="space-y-3">
                 {!isOwnProfile && isAuthenticated && (
                   <>
+                    {/* ⚠️ Paiement commenté : le bouton « Demander une session » est toujours affiché */}
                     <Button onClick={handleSendRequest} disabled={sendingRequest} className="w-full gap-2">
                       {sendingRequest ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
                       Demander une session
                     </Button>
+                    {/* Ancien bloc (restriction paiement) commenté :
+                    {canContactMonitors ? (
+                      <Button onClick={handleSendRequest} disabled={sendingRequest} className="w-full gap-2">
+                        {sendingRequest ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                        Demander une session
+                      </Button>
+                    ) : (
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-500">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Lock className="h-4 w-4 flex-shrink-0" />
+                          Payez pour un cours pour contacter les moniteurs
+                        </div>
+                        <Button
+                          onClick={() => setPaymentOpen(true)}
+                          size="sm"
+                          className="w-full gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"
+                        >
+                          <CreditCard className="h-4 w-4" />
+                          Payer maintenant
+                        </Button>
+                      </div>
+                    )}
+                    */}
                     <Button variant="outline" className="w-full gap-2">
                       <Phone className="h-4 w-4" />
                       Appel vidéo
@@ -550,6 +605,8 @@ export default function UserDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* <PaymentDialog open={paymentOpen} onOpenChange={setPaymentOpen} /> */}
     </div>
     </PageTransition>
   );

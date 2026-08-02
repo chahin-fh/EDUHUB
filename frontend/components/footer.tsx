@@ -47,8 +47,8 @@ export default function Footer() {
             {
               title: "Légal",
               links: [
-                { label: "Confidentialité", href: "#" },
-                { label: "Conditions d'utilisation", href: "#" },
+                { label: "Confidentialité", href: "/privacy" },
+                { label: "Conditions d'utilisation", href: "/conditions" },
                 { label: "CGV", href: "#" },
                 { label: "Mentions légales", href: "#" },
               ],

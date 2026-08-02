@@ -186,7 +186,9 @@ export default function MentorsPage() {
 
       let response = await fetch(`http://localhost:5000/api/usersList?${params}`, { headers });
 
-      if (response.status === 401) {
+      // La route privée /api/usersList est désormais admin-only (403 pour un
+      // étudiant/moniteur) : on bascule sur l'endpoint public /public.
+      if (response.status === 401 || response.status === 403) {
         response = await fetch(`http://localhost:5000/api/usersList/public?${params}`, { headers: { "Content-Type": "application/json" } });
       }
 

@@ -23,6 +23,19 @@ const messageSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
+    // Réactions par emoji : un utilisateur ne peut réagir qu'une seule fois
+    // avec le même emoji (le toggle ajoute puis retire).
+    reactions: [
+      {
+        emoji: { type: String, required: true },
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   {
     timestamps: true,

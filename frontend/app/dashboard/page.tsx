@@ -23,11 +23,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { ActivityChart } from "@/components/dashboard/activity-chart";
+import MentorOverview from "@/components/dashboard/mentor-overview";
 import { motion } from "framer-motion";
 import { PageTransition, AnimatedSection, StaggerContainer, StaggerItem, AnimatedCard } from "@/components/animated-section";
 
@@ -47,11 +48,26 @@ interface User {
   role?: string;
 }
 
-const statCards = [
-  { title: "Cours suivis", value: "12", change: "+2 cette semaine", icon: BookOpen, color: "bg-blue-100 text-blue-600", trend: "up" as const },
-  { title: "Heures d'étude", value: "24h", change: "+5h cette semaine", icon: Clock, color: "bg-green-100 text-green-600", trend: "up" as const },
-  { title: "Tuteurs", value: "3", change: "Nouveau tuteur", icon: Users, color: "bg-purple-100 text-purple-600", trend: "new" as const },
-  { title: "Progression", value: "75%", change: "+5% cette semaine", icon: TrendingUp, color: "bg-amber-100 text-amber-600", trend: "up" as const, showProgress: true },
+interface DashboardStats {
+  enrolledCourses: number;
+  studyHours: number;
+  tutors: number;
+  progression: number;
+  weeklyActivity: { name: string; cours: number }[];
+  recentActivities: {
+    type: "course" | "message" | "assignment";
+    title: string;
+    description: string;
+    time: string;
+  }[];
+  courseProgress: { title: string; completionPercentage: number }[];
+}
+
+const defaultStatCards = [
+  { title: "Cours suivis", value: "—", change: "Chargement...", icon: BookOpen, color: "bg-blue-100 text-blue-600", trend: "up" as const },
+  { title: "Heures d'étude", value: "—", change: "Chargement...", icon: Clock, color: "bg-green-100 text-green-600", trend: "up" as const },
+  { title: "Tuteurs", value: "—", change: "Chargement...", icon: Users, color: "bg-purple-100 text-purple-600", trend: "new" as const },
+  { title: "Progression", value: "—", change: "Chargement...", icon: TrendingUp, color: "bg-amber-100 text-amber-600", trend: "up" as const, showProgress: true },
 ];
 
 function StatCard({
@@ -105,12 +121,37 @@ function StatCard({
 export default function DashboardPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+  const [dashStats, setDashStats] = useState<DashboardStats | null>(null);
+  const isMonitorOrAdmin = user?.role === "admin" || !!user?.isMonitor;
+  const [view, setView] = useState<"student" | "mentor">("mentor");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/connexion");
     }
   }, [isLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    // Ne charger les stats étudiant que si la vue étudiant est affichée
+    // (évite une requête inutile en vue moniteur, et réduit le risque de 429)
+    if (!isAuthenticated) return;
+    if (isMonitorOrAdmin && view !== "student") return;
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        const res = await fetch("http://localhost:5000/api/stats/dashboard", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) setDashStats(data.stats);
+        }
+      } catch (err) {
+        console.error("Error fetching dashboard stats:", err);
+      }
+    };
+    fetchStats();
+  }, [isAuthenticated, isMonitorOrAdmin, view]);
 
   if (isLoading) {
     return (
@@ -125,20 +166,32 @@ export default function DashboardPage() {
 
   if (!isAuthenticated) return null;
 
-  const recentActivities: ActivityItem[] = [
-    {
-      id: 1, title: "Nouveau cours ajouté", description: "Mathématiques avancées",
-      icon: <BookOpen className="h-5 w-5 text-blue-600" />, time: "Il y a 2 heures", type: "course",
-    },
-    {
-      id: 2, title: "Message de votre tuteur", description: "Jean Dupont",
-      icon: <MessageSquare className="h-5 w-5 text-green-600" />, time: "Il y a 1 jour", type: "message",
-    },
-    {
-      id: 3, title: "Devoir à rendre", description: "Exercices de physique",
-      icon: <FileText className="h-5 w-5 text-amber-600" />, time: "Délai: Demain", type: "assignment",
-    },
-  ];
+  const statCards = dashStats
+    ? [
+        { title: "Cours suivis", value: dashStats.enrolledCourses.toString(), change: "Inscriptions actives", icon: BookOpen, color: "bg-blue-100 text-blue-600", trend: "up" as const },
+        { title: "Heures d'étude", value: `${dashStats.studyHours}h`, change: "Temps total", icon: Clock, color: "bg-green-100 text-green-600", trend: "up" as const },
+        { title: "Tuteurs", value: dashStats.tutors.toString(), change: "Conversations actives", icon: Users, color: "bg-purple-100 text-purple-600", trend: "new" as const },
+        { title: "Progression", value: `${dashStats.progression}%`, change: "Complétion moyenne", icon: TrendingUp, color: "bg-amber-100 text-amber-600", trend: "up" as const, showProgress: true },
+      ]
+    : defaultStatCards;
+
+  const recentActivities: ActivityItem[] = (dashStats?.recentActivities || []).map(
+    (act, i) => ({
+      id: i + 1,
+      title: act.title,
+      description: act.description,
+      time: act.time,
+      type: act.type,
+      icon:
+        act.type === "message" ? (
+          <MessageSquare className="h-5 w-5 text-green-600" />
+        ) : act.type === "assignment" ? (
+          <FileText className="h-5 w-5 text-amber-600" />
+        ) : (
+          <BookOpen className="h-5 w-5 text-blue-600" />
+        ),
+    })
+  );
 
   const getActivityBgColor = (type: ActivityItem["type"]) => {
     switch (type) {
@@ -169,14 +222,51 @@ export default function DashboardPage() {
               </h1>
               <p className="text-gray-500 mt-1">Voici un aperçu de votre progression</p>
             </div>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button onClick={() => router.push("/cours/upload")} className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl shadow-lg shadow-blue-200">
-                <Plus className="h-4 w-4" />
-                Nouveau cours
-              </Button>
-            </motion.div>
+            {isMonitorOrAdmin && (
+              <div className="flex items-center gap-2">
+                {/* Sélecteur de vue Étudiant / Moniteur */}
+                <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-1 shadow-sm inline-flex">
+                  <button
+                    onClick={() => setView("student")}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                      view === "student"
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    Étudiant
+                  </button>
+                  <button
+                    onClick={() => setView("mentor")}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                      view === "mentor"
+                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    Moniteur
+                  </button>
+                </div>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button onClick={() => router.push("/cours/upload")} className="gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl shadow-lg shadow-blue-200">
+                    <Plus className="h-4 w-4" />
+                    Nouveau cours
+                  </Button>
+                </motion.div>
+              </div>
+            )}
           </AnimatedSection>
 
+          {/* Vue Moniteur (stats mentor, cours, inscriptions) */}
+          {isMonitorOrAdmin && view === "mentor" && (
+            <div className="mb-10">
+              <MentorOverview />
+            </div>
+          )}
+
+          {/* Vue Étudiant (stats de progression) */}
+          {(!isMonitorOrAdmin || view === "student") && (
+            <>
           {/* Stats */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
             {statCards.map((stat, index) => (
@@ -201,7 +291,7 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
-                <ActivityChart />
+                <ActivityChart data={dashStats?.weeklyActivity} />
               </CardContent>
             </Card>
           </AnimatedSection>
@@ -257,23 +347,29 @@ export default function DashboardPage() {
               <Card className="border-gray-200/80 bg-white/90 backdrop-blur-sm shadow-lg rounded-2xl overflow-hidden h-full">
                 <CardHeader className="border-b border-gray-100">
                   <CardTitle>Progression du cours</CardTitle>
-                  <CardDescription>Mathématiques avancées</CardDescription>
+                  <CardDescription>{dashStats?.courseProgress?.length ? `${dashStats.courseProgress.length} cours suivis` : "Vos cours"}</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-5">
-                    {[
-                      { label: "Chapitres complétés", value: "6/10", percent: 60 },
-                      { label: "Devoirs rendus", value: "4/8", percent: 50 },
-                      { label: "Participation", value: "85%", percent: 85 },
-                    ].map((item, idx) => (
+                    {(dashStats?.courseProgress?.length
+                      ? dashStats.courseProgress.map((c, idx) => ({
+                          label: c.title,
+                          value: `${c.completionPercentage}%`,
+                          percent: c.completionPercentage,
+                          key: `${c.title}-${idx}`,
+                        }))
+                      : [
+                          { key: "empty", label: "Aucun cours suivi pour le moment", value: "0%", percent: 0 },
+                        ]
+                    ).map((item, idx) => (
                       <motion.div
-                        key={item.label}
+                        key={item.key}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.1 }}
                       >
                         <div className="flex justify-between text-sm font-medium mb-1.5">
-                          <span className="text-gray-700">{item.label}</span>
+                          <span className="text-gray-700 truncate mr-2">{item.label}</span>
                           <span className="text-gray-900 font-semibold">{item.value}</span>
                         </div>
                         <Progress value={item.percent} max={100} className="h-2.5 rounded-full bg-gray-100" />
@@ -289,6 +385,8 @@ export default function DashboardPage() {
               </Card>
             </AnimatedCard>
           </div>
+            </>
+          )}
         </div>
       </div>
     </PageTransition>

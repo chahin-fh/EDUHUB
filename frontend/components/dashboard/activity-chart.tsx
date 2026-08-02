@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const data = [
+const defaultData = [
   { name: "Lun", cours: 2, devoirs: 1 },
   { name: "Mar", cours: 3, devoirs: 2 },
   { name: "Mer", cours: 2, devoirs: 3 },
@@ -21,12 +21,19 @@ const data = [
   { name: "Dim", cours: 0, devoirs: 0 },
 ];
 
-export function ActivityChart() {
+interface ActivityChartProps {
+  data?: { name: string; cours: number; devoirs?: number }[];
+}
+
+export function ActivityChart({ data }: ActivityChartProps) {
+  const hasRealData = !!data && data.length > 0;
+  const chartData = hasRealData ? data : defaultData;
+
   return (
     <div className="w-full h-80">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
-          data={data}
+          data={chartData}
           margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
@@ -54,15 +61,17 @@ export function ActivityChart() {
             activeDot={{ r: 6, stroke: "#2563eb", strokeWidth: 2 }}
             name="Cours"
           />
-          <Line
-            type="monotone"
-            dataKey="devoirs"
-            stroke="#10b981"
-            strokeWidth={2}
-            dot={{ r: 4 }}
-            activeDot={{ r: 6, stroke: "#059669", strokeWidth: 2 }}
-            name="Devoirs"
-          />
+          {!hasRealData && (
+            <Line
+              type="monotone"
+              dataKey="devoirs"
+              stroke="#10b981"
+              strokeWidth={2}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6, stroke: "#059669", strokeWidth: 2 }}
+              name="Devoirs"
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

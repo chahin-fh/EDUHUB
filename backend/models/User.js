@@ -42,7 +42,6 @@ const availabilitySlotSchema = new mongoose.Schema({
 
 const userSchema = new mongoose.Schema(
   {
-    googleId: { type: String, unique: true, sparse: true },
     username: { type: String },
     name: {
       type: String,
@@ -60,9 +59,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: function () {
-        return !this.googleId;
-      },
+      required: true,
       minlength: 8,
       select: false,
     },
@@ -80,9 +77,11 @@ const userSchema = new mongoose.Schema(
     learningGoals: [learningGoalSchema],
 
     // Moniteur capabilities (peut être activé pour les users)
+    // Par défaut false : un nouvel utilisateur n'est PAS moniteur tant qu'il
+    // n'active pas ce statut (POST /api/monitor/toggle) ou n'ajoute pas d'expertise.
     isMonitor: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     monitorProfile: {
       expertise: [expertiseSubjectSchema],

@@ -213,6 +213,31 @@ exports.respondToMatchRequest = async (req, res) => {
       .populate("subject", "name slug")
       .populate("conversation");
 
+    // Notifier l'étudiant demandeur en temps réel (Socket.io)
+    try {
+      const io = req.app.get("io");
+      if (io) {
+        io.to(matchRequest.requester.toString()).emit(
+          "match-request-updated",
+          {
+            requestId: matchRequest._id.toString(),
+            status,
+            mentorName:
+              populatedRequest.mentor?.name ||
+              populatedRequest.mentor?.username ||
+              "Moniteur",
+            subjectName: populatedRequest.subject?.name || "",
+            message:
+              status === "accepted"
+                ? "Votre demande a été acceptée ! Une conversation a été créée."
+                : "Votre demande a été refusée.",
+          }
+        );
+      }
+    } catch (ioError) {
+      console.error("Error emitting match request update:", ioError.message);
+    }
+
     res.json({
       success: true,
       message: status === "accepted" ? "Demande acceptée" : "Demande refusée",
