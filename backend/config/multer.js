@@ -90,6 +90,73 @@ const avatarStorage = multer.diskStorage({
   },
 });
 
+// Configuration du stockage local pour les pièces jointes de chat
+const chatDir = path.join(uploadsDir, "chat");
+
+if (!fs.existsSync(chatDir)) {
+  fs.mkdirSync(chatDir, { recursive: true });
+}
+
+const chatStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, chatDir);
+  },
+  filename: function (req, file, cb) {
+    // Générer un nom de fichier unique
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, "chat-" + uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+// Types de fichiers autorisés pour les pièces jointes de chat
+const allowedChatMimeTypes = [
+  // Images
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/svg+xml",
+
+  // PDF
+  "application/pdf",
+
+  // PowerPoint
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+
+  // Word
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+
+  // Excel
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+  // Texte, archives, JSON
+  "text/plain",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/json",
+];
+
+// Middleware pour l'upload de pièces jointes de chat
+const uploadChatFile = multer({
+  storage: chatStorage,
+  limits: {
+    fileSize: 20 * 1024 * 1024, // 20MB
+  },
+  fileFilter: function (req, file, cb) {
+    // Vérifier que le fichier est d'un type autorisé
+    if (allowedChatMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      const error = new Error("Type de fichier non autorisé");
+      error.status = 400;
+      cb(error, false);
+    }
+  },
+});
+
 // Types d'images autorisés
 const allowedImageMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
@@ -116,4 +183,5 @@ const uploadAvatar = multer({
 module.exports = {
   uploadDocument,
   uploadAvatar,
+  uploadChatFile,
 };

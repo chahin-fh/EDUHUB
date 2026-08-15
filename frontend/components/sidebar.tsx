@@ -179,14 +179,6 @@ export default function Sidebar() {
                   </div>
                   <span className="truncate">{link.name}</span>
 
-                  {/* Active indicator bar */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="sidebar-active-bar"
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full bg-gradient-to-b from-blue-500 to-purple-500"
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
-                  )}
                 </Link>
               </motion.div>
             );
@@ -223,6 +215,26 @@ export default function Sidebar() {
                         </div>
                     </div>
                 </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-0.5">
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {user.username}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {user.email}
+                      </span>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="text-red-600 dark:text-red-400 cursor-pointer focus:text-red-600 dark:focus:text-red-400"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Déconnexion
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
               </DropdownMenu>
             </div>
           ) : (

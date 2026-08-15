@@ -20,9 +20,11 @@ import {
   CheckCheck,
   Smile,
   Trash2,
+  Paperclip,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { WebRTCCall } from "@/components/webrtc-call";
+import { WebRTCCall, type WebRTCCallHandle } from "@/components/webrtc-call";
 import {
   EmojiPicker,
   groupReactions,
@@ -39,6 +41,13 @@ interface Participant {
   avatar?: string;
 }
 
+interface Attachment {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
 interface Conversation {
   _id: string;
   type: "direct" | "group";
@@ -46,6 +55,7 @@ interface Conversation {
   lastMessage?: {
     _id: string;
     text: string;
+    attachments?: Attachment[];
     sender: { _id: string; name: string };
     createdAt: string;
   };
@@ -63,6 +73,7 @@ interface Message {
     avatar?: string;
   };
   text: string;
+  attachments?: Attachment[];
   createdAt: string;
   readBy?: string[];
   status?: "sent" | "seen";
@@ -80,12 +91,12 @@ export default function MessagesPage() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [callUserId, setCallUserId] = useState<string | null>(null);
-  const [callUserName, setCallUserName] = useState("");
-  const [callUserAvatar, setCallUserAvatar] = useState("");
   const [emojiPickerFor, setEmojiPickerFor] = useState<string | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const callRef = useRef<WebRTCCallHandle>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Ouvrir directement une conversation avec un utilisateur passé en query (?user=id)
   const openConversationWithUser = async (userId: string) => {
@@ -215,8 +226,11 @@ export default function MessagesPage() {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation || sendingMessage) return;
+  const handleSendMessage = async (attachment?: Attachment) => {
+    const text = newMessage.trim();
+    if ((!text && !attachment) || !selectedConversation || sendingMessage) {
+      return;
+    }
 
     setSendingMessage(true);
     try {
@@ -229,7 +243,10 @@ export default function MessagesPage() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ text: newMessage }),
+          body: JSON.stringify({
+            text,
+            attachments: attachment ? [attachment] : [],
+          }),
         }
       );
 
@@ -243,6 +260,44 @@ export default function MessagesPage() {
       console.error("Error sending message:", err);
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  // Sélection d'un fichier : upload puis envoi immédiat avec le texte saisi (si présent)
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Permet de re-sélectionner le même fichier ensuite
+    e.target.value = "";
+    if (!file || !selectedConversation) return;
+
+    setUploadingFile(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("http://localhost:5000/api/chat/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Upload échoué");
+      }
+
+      const data = await res.json();
+      await handleSendMessage(data.attachment as Attachment);
+    } catch (err) {
+      console.error("Error uploading file:", err);
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Impossible d'envoyer le fichier"
+      );
+    } finally {
+      setUploadingFile(false);
     }
   };
 
@@ -310,16 +365,6 @@ export default function MessagesPage() {
     );
   };
 
-  const handleStartVideoCall = () => {
-    if (!selectedConversation) return;
-    const other = getOtherParticipant(selectedConversation);
-    if (other) {
-      setCallUserId(other._id);
-      setCallUserName(other.name || other.username);
-      setCallUserAvatar(other.avatar || "");
-    }
-  };
-
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -348,6 +393,10 @@ export default function MessagesPage() {
       other.username?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
+
+  const activeOther = selectedConversation
+    ? getOtherParticipant(selectedConversation)
+    : null;
 
   if (loading) {
     return (
@@ -426,7 +475,10 @@ export default function MessagesPage() {
                           </span>
                         </div>
                         <p className="text-sm text-gray-500 truncate mt-0.5">
-                          {conversation.lastMessage?.text || "Nouvelle conversation"}
+                          {conversation.lastMessage?.text ||
+                            (conversation.lastMessage?.attachments?.length
+                              ? "📎 Pièce jointe"
+                              : "Nouvelle conversation")}
                         </p>
                       </div>
                     </motion.div>
@@ -466,12 +518,12 @@ export default function MessagesPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}>
-                    <Button variant="ghost" size="icon" onClick={handleStartVideoCall} title="Appel vidéo" className="hover:bg-blue-50 hover:text-blue-600">
+                    <Button variant="ghost" size="icon" onClick={() => callRef.current?.startVideoCall()} title="Appel vidéo" className="hover:bg-blue-50 hover:text-blue-600">
                       <Video className="h-5 w-5" />
                     </Button>
                   </motion.div>
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}>
-                    <Button variant="ghost" size="icon" onClick={handleStartVideoCall} title="Appel audio" className="hover:bg-green-50 hover:text-green-600">
+                    <Button variant="ghost" size="icon" onClick={() => callRef.current?.startAudioCall()} title="Appel audio" className="hover:bg-green-50 hover:text-green-600">
                       <Phone className="h-5 w-5" />
                     </Button>
                   </motion.div>
@@ -521,7 +573,50 @@ export default function MessagesPage() {
                             <div className={`px-4 py-2.5 rounded-2xl shadow-sm ${
                               isMe ? "bg-blue-500 text-white rounded-br-md" : "bg-white text-gray-900 rounded-bl-md border border-gray-100"
                             }`}>
-                              <p className="text-sm leading-relaxed">{message.text}</p>
+                              {message.text && (
+                                <p className="text-sm leading-relaxed">{message.text}</p>
+                              )}
+                              {message.attachments && message.attachments.length > 0 && (
+                                <div className={message.text ? "mt-2 space-y-2" : "space-y-2"}>
+                                  {message.attachments.map((att, idx) => {
+                                    const fullUrl = att.url.startsWith("http")
+                                      ? att.url
+                                      : `http://localhost:5000${att.url}`;
+                                    const isImage = att.type.startsWith("image/");
+                                    return isImage ? (
+                                      <a
+                                        key={idx}
+                                        href={fullUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="block"
+                                      >
+                                        <img
+                                          src={fullUrl}
+                                          alt={att.name}
+                                          className="max-h-52 w-auto rounded-lg object-cover border border-black/10"
+                                        />
+                                      </a>
+                                    ) : (
+                                      <a
+                                        key={idx}
+                                        href={fullUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        download
+                                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
+                                          isMe
+                                            ? "bg-white/15 text-white hover:bg-white/25"
+                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        }`}
+                                      >
+                                        <FileText className="h-4 w-4 flex-shrink-0" />
+                                        <span className="truncate">{att.name}</span>
+                                      </a>
+                                    );
+                                  })}
+                                </div>
+                              )}
                               <div className={`flex items-center justify-end gap-1 text-xs mt-1 ${isMe ? "text-blue-100" : "text-gray-400"}`}>
                                 <span>{formatTime(message.createdAt)}</span>
                                 {isMe &&
@@ -602,11 +697,33 @@ export default function MessagesPage() {
 
               <div className="p-4 border-t border-gray-100 bg-white">
                 <div className="flex items-center gap-2 max-w-3xl mx-auto">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                  />
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-12 w-12 rounded-xl text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingFile}
+                      title="Joindre un fichier"
+                    >
+                      {uploadingFile ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Paperclip className="h-5 w-5" />
+                      )}
+                    </Button>
+                  </motion.div>
                   <Input placeholder="Écrivez un message..." className="flex-1 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-500 transition-all h-12"
                     value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }} />
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}>
-                    <Button size="icon" onClick={handleSendMessage} disabled={!newMessage.trim() || sendingMessage}
+                    <Button size="icon" onClick={() => handleSendMessage()} disabled={!newMessage.trim() || sendingMessage}
                       className="h-12 w-12 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                       {sendingMessage ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                     </Button>
@@ -627,16 +744,18 @@ export default function MessagesPage() {
           )}
         </motion.div>
 
-        {/* WebRTC Video Call */}
-        {callUserId && currentUser && selectedConversation && (
+        {/* WebRTC Call — toujours monté pour recevoir les appels entrants,
+            déclenché depuis les boutons du header via la ref */}
+        {currentUser && (
           <WebRTCCall
-            userId={callUserId}
+            ref={callRef}
+            userId={activeOther?._id || ""}
             currentUserId={currentUser.id || currentUser._id || ""}
             currentUserName={currentUser.name || currentUser.username || "Moi"}
             currentUserAvatar={currentUser.avatar}
-            remoteUserName={callUserName}
-            remoteUserAvatar={callUserAvatar}
-            onEndCall={() => { setCallUserId(null); setCallUserName(""); setCallUserAvatar(""); }}
+            remoteUserName={activeOther?.name || activeOther?.username || ""}
+            remoteUserAvatar={activeOther?.avatar || ""}
+            showStartButton={false}
           />
         )}
       </div>

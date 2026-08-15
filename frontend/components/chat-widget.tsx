@@ -1,16 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
   Check,
   CheckCheck,
   // CreditCard, // ⚠️ Paiement commenté
+  FileText,
   // Lock, // ⚠️ Paiement commenté
+  Loader2,
   MessageCircle,
   Mic,
   MicOff,
   Monitor,
+  Paperclip,
   Phone,
   PhoneOff,
   Plus,
@@ -53,9 +57,17 @@ type UserLite = {
   avatar?: string;
 };
 
+type AttachmentType = {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+};
+
 type MessageType = {
   _id: string;
   text: string;
+  attachments?: AttachmentType[];
   sender: UserLite;
   createdAt: string;
   readBy?: string[];
@@ -115,6 +127,7 @@ async function apiFetch<T>(
 
 export default function ChatWidget() {
   const { user, isAuthenticated } = useAuth();
+  const pathname = usePathname();
   const { canContactMonitors, loading: enrollmentLoading } =
     useCanContactMonitors();
 
@@ -135,6 +148,7 @@ export default function ChatWidget() {
   const [searchResults, setSearchResults] = useState<UserLite[]>([]);
 
   const [messageText, setMessageText] = useState("");
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [isUserPickerOpen, setIsUserPickerOpen] = useState(false);
@@ -149,6 +163,7 @@ export default function ChatWidget() {
   const [emojiPickerFor, setEmojiPickerFor] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // WebRTC & Socket.io States
   const socketRef = useRef<Socket | null>(null);
@@ -357,10 +372,10 @@ export default function ChatWidget() {
     await refreshMessages(conversationId);
   };
 
-  const sendMessage = async () => {
+  const sendMessage = async (attachment?: AttachmentType) => {
     if (!selectedConversationId) return;
     const text = messageText.trim();
-    if (!text) return;
+    if (!text && !attachment) return;
 
     setMessageText("");
 
@@ -368,13 +383,47 @@ export default function ChatWidget() {
       `/api/chat/conversations/${selectedConversationId}/messages`,
       {
         method: "POST",
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({
+          text,
+          attachments: attachment ? [attachment] : [],
+        }),
       }
     );
 
     setMessages((prev) => [...prev, data.message]);
     await refreshConversations();
     scrollToBottom();
+  };
+
+  // Sélection d'un fichier : upload puis envoi immédiat avec le texte saisi (si présent)
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Permet de re-sélectionner le même fichier ensuite
+    e.target.value = "";
+    if (!file || !selectedConversationId) return;
+
+    setUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const token = localStorage.getItem("authToken") || "";
+
+      const res = await fetch(`${API_BASE}/api/chat/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.message || "Upload échoué");
+      }
+
+      await sendMessage(data.attachment as AttachmentType);
+    } catch (e: any) {
+      toast.error(e?.message || "Impossible d'envoyer le fichier");
+    } finally {
+      setUploadingFile(false);
+    }
   };
 
   const formatTime = (dateStr: string) => {
@@ -721,6 +770,11 @@ export default function ChatWidget() {
     return null;
   }
 
+  // Hide the floating chat widget on /messages, which has its own chat UI
+  if (pathname.startsWith("/messages")) {
+    return null;
+  }
+
   return (
     <div className="fixed bottom-6 right-6 z-[9999] pointer-events-none">
       <div className="relative">
@@ -743,7 +797,7 @@ export default function ChatWidget() {
         )}
 
         {isOpen && (
-          <div className="pointer-events-auto absolute bottom-16 right-0 w-[360px] max-w-[calc(100vw-3rem)]">
+          <div className="pointer-events-auto absolute bottom-3 right-0 w-[360px] max-w-[calc(100vw-3rem)]">
             <Card className="shadow-2xl border-2">
               <CardHeader className="p-3">
                 <div className="flex items-center justify-between gap-2">
@@ -944,7 +998,11 @@ export default function ChatWidget() {
                                 ) || c.participants[0];
 
                               const title = other ? getUserDisplayName(other) : "Conversation";
-                              const subtitle = c.lastMessage?.text || "";
+                              const subtitle =
+                                c.lastMessage?.text ||
+                                (c.lastMessage?.attachments?.length
+                                  ? "📎 Pièce jointe"
+                                  : "");
                               const isUnread =
                                 !!c.lastMessage &&
                                 c.lastMessage.sender._id !== currentUserId &&
@@ -1036,7 +1094,51 @@ export default function ChatWidget() {
                                         : "bg-muted"
                                     )}
                                   >
-                                    {m.text}
+                                    {m.text && <p>{m.text}</p>}
+                                    {m.attachments && m.attachments.length > 0 && (
+                                      <div className={m.text ? "mt-1.5 space-y-1.5" : "space-y-1.5"}>
+                                        {m.attachments.map((att, idx) => {
+                                          const fullUrl = att.url.startsWith("http")
+                                            ? att.url
+                                            : `${API_BASE}${att.url}`;
+                                          const isImage = att.type.startsWith("image/");
+                                          return isImage ? (
+                                            <a
+                                              key={idx}
+                                              href={fullUrl}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="block"
+                                            >
+                                              <img
+                                                src={fullUrl}
+                                                alt={att.name}
+                                                className="max-h-44 w-auto rounded-md object-cover border border-black/10"
+                                              />
+                                            </a>
+                                          ) : (
+                                            <a
+                                              key={idx}
+                                              href={fullUrl}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              download
+                                              className={cn(
+                                                "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium",
+                                                isMine
+                                                  ? "bg-white/15 text-primary-foreground hover:bg-white/25"
+                                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                              )}
+                                            >
+                                              <FileText className="h-3.5 w-3.5 flex-shrink-0" />
+                                              <span className="max-w-[160px] truncate">
+                                                {att.name}
+                                              </span>
+                                            </a>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
                                     <div
                                       className={cn(
                                         "mt-0.5 flex items-center justify-end gap-1 text-[10px]",
@@ -1212,6 +1314,26 @@ export default function ChatWidget() {
                     <Separator className="my-3" />
 
                     <div className="flex items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        onChange={handleFileSelect}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingFile}
+                        title="Joindre un fichier"
+                      >
+                        {uploadingFile ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Paperclip className="h-4 w-4" />
+                        )}
+                      </Button>
                       <Input
                         value={messageText}
                         onChange={(e) => setMessageText(e.target.value)}

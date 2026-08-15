@@ -117,7 +117,7 @@ exports.getConversations = async (req, res, next) => {
       })
       .populate({
         path: "lastMessage",
-        select: "text sender createdAt readBy",
+        select: "text attachments sender createdAt readBy",
         populate: { path: "sender", select: "name username email avatar" },
       })
       .sort({ lastMessageAt: -1, updatedAt: -1 });
@@ -256,6 +256,32 @@ exports.getMessages = async (req, res, next) => {
   }
 };
 
+// @desc    Uploader une pièce jointe pour un message de chat
+// @route   POST /api/chat/upload
+// @access  Private
+exports.uploadChatAttachment = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      const err = new Error("Aucun fichier reçu");
+      err.status = 400;
+      throw err;
+    }
+
+    // Stocker une URL absolue pour que la pièce jointe s'affiche partout
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    return res.status(201).json({
+      attachment: {
+        url: `${baseUrl}/uploads/chat/${req.file.filename}`,
+        name: req.file.originalname,
+        type: req.file.mimetype,
+        size: req.file.size,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 exports.sendMessage = async (req, res, next) => {
   try {
     const conversationId = ensureObjectId(req.params.id);
@@ -265,16 +291,29 @@ exports.sendMessage = async (req, res, next) => {
     );
 
     const text = (req.body.text || "").toString().trim();
-    if (!text) {
-      const err = new Error("Message text is required");
+    const rawAttachments = Array.isArray(req.body.attachments)
+      ? req.body.attachments
+      : [];
+
+    if (!text && rawAttachments.length === 0) {
+      const err = new Error("Message text or attachment is required");
       err.status = 400;
       throw err;
     }
+
+    // Sanitisation des métadonnées de pièces jointes
+    const attachments = rawAttachments.slice(0, 10).map((a) => ({
+      url: String((a && a.url) || "").slice(0, 500),
+      name: String((a && a.name) || "Fichier").slice(0, 255),
+      type: String((a && a.type) || "application/octet-stream").slice(0, 100),
+      size: Math.max(0, Number((a && a.size) || 0) || 0),
+    }));
 
     const message = await Message.create({
       conversation: conversationId,
       sender: req.user._id,
       text,
+      attachments,
       readBy: [req.user._id],
     });
 

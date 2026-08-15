@@ -14,9 +14,18 @@ const messageSchema = new mongoose.Schema(
     },
     text: {
       type: String,
-      required: true,
       trim: true,
+      default: '',
     },
+    // Pièces jointes envoyées avec le message (fichiers uploadés via /api/chat/upload)
+    attachments: [
+      {
+        url: { type: String, required: true },
+        name: { type: String, required: true },
+        type: { type: String, default: 'application/octet-stream' },
+        size: { type: Number, default: 0 },
+      },
+    ],
     readBy: [
       {
         type: mongoose.Schema.Types.ObjectId,

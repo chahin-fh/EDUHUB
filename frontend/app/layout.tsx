@@ -41,7 +41,6 @@ export default function RootLayout({
           <AuthProvider>
             <Sidebar />
             <main className="flex-1 lg:ml-64">{children}</main>
-            <ContactSection />
             <Analytics />
             <ChatWidget />
             <Toaster position="bottom-right" richColors closeButton />

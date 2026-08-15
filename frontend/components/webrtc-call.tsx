@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { io, Socket } from "socket.io-client";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,17 +35,30 @@ interface WebRTCCallProps {
   remoteUserName: string;
   remoteUserAvatar?: string;
   onEndCall?: () => void;
+  // Masque le bouton "Appeler" quand le composant est intégré dans une page
+  // qui a déjà ses propres boutons d'appel (ex: /messages).
+  showStartButton?: boolean;
 }
 
-export function WebRTCCall({
-  userId,
-  currentUserId,
-  currentUserName,
-  currentUserAvatar,
-  remoteUserName,
-  remoteUserAvatar,
-  onEndCall,
-}: WebRTCCallProps) {
+export interface WebRTCCallHandle {
+  startAudioCall: () => void;
+  startVideoCall: () => void;
+}
+
+export const WebRTCCall = forwardRef<WebRTCCallHandle, WebRTCCallProps>(
+  function WebRTCCall(
+    {
+      userId,
+      currentUserId,
+      currentUserName,
+      currentUserAvatar,
+      remoteUserName,
+      remoteUserAvatar,
+      onEndCall,
+      showStartButton = true,
+    }: WebRTCCallProps,
+    ref
+  ) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isCallActive, setIsCallActive] = useState(false);
   const [isCalling, setIsCalling] = useState(false);
@@ -237,44 +257,57 @@ export function WebRTCCall({
     [socket, userId]
   );
 
-  const startCall = useCallback(async () => {
-    setIsCalling(true);
-    const stream = await getLocalStream(isVideoEnabled);
-    if (!stream) {
-      setIsCalling(false);
-      return;
-    }
-
-    const pc = createPeerConnection(stream);
-
-    try {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      if (socket) {
-        socket.emit("call-user", {
-          to: userId,
-          from: currentUserId,
-          fromName: currentUserName,
-          fromAvatar: currentUserAvatar,
-          signalData: offer,
-          isScreenShare: false,
-        });
+  const startCall = useCallback(
+    async (video: boolean) => {
+      setIsCalling(true);
+      const stream = await getLocalStream(video);
+      if (!stream) {
+        setIsCalling(false);
+        return;
       }
-    } catch (err) {
-      console.error("Error creating offer:", err);
-      setIsCalling(false);
-    }
-  }, [
-    getLocalStream,
-    isVideoEnabled,
-    createPeerConnection,
-    socket,
-    userId,
-    currentUserId,
-    currentUserName,
-    currentUserAvatar,
-  ]);
+
+      const pc = createPeerConnection(stream);
+
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        if (socket) {
+          socket.emit("call-user", {
+            to: userId,
+            from: currentUserId,
+            fromName: currentUserName,
+            fromAvatar: currentUserAvatar,
+            signalData: offer,
+            isScreenShare: false,
+          });
+        }
+      } catch (err) {
+        console.error("Error creating offer:", err);
+        setIsCalling(false);
+      }
+    },
+    [
+      getLocalStream,
+      createPeerConnection,
+      socket,
+      userId,
+      currentUserId,
+      currentUserName,
+      currentUserAvatar,
+    ]
+  );
+
+  // API impérative exposée aux pages intégrant le composant : permet de
+  // déclencher un appel audio ou vidéo sans bouton interne.
+  useImperativeHandle(
+    ref,
+    () => ({
+      startAudioCall: () => startCall(false),
+      startVideoCall: () => startCall(true),
+    }),
+    [startCall]
+  );
 
   const acceptCall = useCallback(async () => {
     if (!incomingCaller || !incomingCaller.signal) return;
@@ -440,10 +473,13 @@ export function WebRTCCall({
   }, [isScreenSharing, getLocalStream]);
 
   if (!isCallActive && !isCalling && !isIncomingCall) {
-    // Show "Call" button
+    // Bouton "Appeler" masqué quand la page hôte fournit ses propres boutons
+    if (!showStartButton) {
+      return null;
+    }
     return (
       <Button
-        onClick={startCall}
+        onClick={() => startCall(isVideoEnabled)}
         disabled={isCalling}
         className="gap-2 bg-green-600 hover:bg-green-700"
       >
@@ -640,4 +676,5 @@ export function WebRTCCall({
       )}
     </div>
   );
-}
+  }
+);
