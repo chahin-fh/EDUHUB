@@ -136,6 +136,10 @@ router.get("/public", async (req, res) => {
       .select(
         "name username email role isMonitor monitorProfile avatar bio createdAt isActive emailVerified"
       )
+      .populate({
+        path: "monitorProfile.expertise.subject",
+        select: "name slug",
+      })
       .sort(sortOptions)
       .skip(skip)
       .limit(limitNum);
@@ -271,6 +275,10 @@ router.get("/", protect, adminOnly, async (req, res) => {
       .select(
         "-password -passwordResetToken -passwordResetExpires -emailVerificationToken -emailVerificationExpires"
       )
+      .populate({
+        path: "monitorProfile.expertise.subject",
+        select: "name slug",
+      })
       .sort(sortOptions)
       .skip(skip)
       .limit(limitNum);

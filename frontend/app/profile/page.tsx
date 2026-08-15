@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ import {
   Clock,
   Star,
   GraduationCap,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +66,9 @@ export default function ProfilePage() {
   const [learnSearchQuery, setLearnSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedSubject, setSelectedSubject] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const levels = ["Débutant", "Intermédiaire", "Avancé"];
 
@@ -214,6 +218,49 @@ export default function ProfilePage() {
     }
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarUploading(true);
+    setAvatarError("");
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const response = await fetch(
+        "http://localhost:5000/api/auth/upload-avatar",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(
+          errData.error || errData.message || "Erreur lors de l'upload de la photo"
+        );
+      }
+
+      const data = await response.json();
+      if (data.success && data.url) {
+        updateUser({ avatar: data.url });
+      } else {
+        throw new Error("Réponse invalide du serveur");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setAvatarError(err.message || "Erreur lors de l'upload de la photo");
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = "";
+    }
+  };
+
   if (!user) {
     return <div>Chargement du profil...</div>;
   }
@@ -305,11 +352,30 @@ export default function ProfilePage() {
                         </Avatar>
                         <Button
                           size="sm"
-                          className="absolute bottom-0 right-0 rounded-full bg-blue-600 hover:bg-blue-700 text-white p-2 h-8 w-8 shadow-lg"
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={avatarUploading}
+                          className="absolute bottom-0 right-0 rounded-full bg-blue-600 hover:bg-blue-700 text-white p-2 h-8 w-8 shadow-lg disabled:opacity-70"
                         >
-                          <Camera className="h-4 w-4" />
+                          {avatarUploading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Camera className="h-4 w-4" />
+                          )}
                         </Button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleAvatarChange}
+                        />
                       </div>
+                      {avatarError && (
+                        <p className="text-xs text-red-500 -mt-2 text-center">
+                          {avatarError}
+                        </p>
+                      )}
                       <div className="text-center space-y-2">
                         <h2 className="text-2xl font-bold text-gray-900">
                           {user.username}

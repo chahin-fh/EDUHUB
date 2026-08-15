@@ -37,10 +37,6 @@ const AuthSection = dynamic(() => import("@/components/auth-section"), {
   loading: () => <div className="h-[500px] my-12 shimmer-placeholder rounded-xl"></div>,
 });
 
-const ContactSection = dynamic(() => import("@/components/contact-section"), {
-  loading: () => <div className="h-[400px] my-12 shimmer-placeholder rounded-xl"></div>,
-});
-
 const Footer = dynamic(() => import("@/components/footer"), {
   loading: () => null,
 });
@@ -365,7 +361,6 @@ export default function Home() {
         </AnimatedSection>
 
         <AuthSection />
-        <ContactSection />
       </main>
       <Footer />
     </div>

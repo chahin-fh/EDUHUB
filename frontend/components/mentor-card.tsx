@@ -46,7 +46,6 @@ export default function MentorCard({ user }: MentorCardProps) {
     : "Mentor";
   const rating = user.monitorProfile?.rating || 0;
   const description = user.bio || "No description provided.";
-  const avatar = user.avatar || "👤"; // Default avatar if none provided
 
   return (
     <div
@@ -57,15 +56,24 @@ export default function MentorCard({ user }: MentorCardProps) {
     >
       {/* Image Section */}
       <div className="aspect-square bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-6xl cursor-pointer relative overflow-hidden">
+        {user.avatar ? (
+          <img
+            src={user.avatar}
+            alt={user.name || user.username}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-300"
+            style={{ transform: isHovered ? "scale(1.1)" : "scale(1)" }}
+          />
+        ) : (
+          <span
+            className="relative z-10 transition-transform duration-300"
+            style={{ transform: isHovered ? "scale(1.1)" : "scale(1)" }}
+          >
+            👤
+          </span>
+        )}
         <div
-          className={`absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}
+          className={`absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 transition-opacity duration-300 pointer-events-none ${isHovered ? "opacity-100" : "opacity-0"}`}
         />
-        <span
-          className="relative z-10 transition-transform duration-300"
-          style={{ transform: isHovered ? "scale(1.1)" : "scale(1)" }}
-        >
-          {avatar}
-        </span>
       </div>
 
       {/* Content */}

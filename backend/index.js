@@ -89,7 +89,13 @@ io.on("connection", (socket) => {
 });
 
 // Middleware
-app.use(helmet());
+// crossOriginResourcePolicy: "cross-origin" permet au frontend (http://localhost:3000)
+// de charger les ressources statiques servies par le backend (ex: avatars dans /uploads).
+app.use(
+    helmet({
+        crossOriginResourcePolicy: { policy: "cross-origin" },
+    })
+);
 app.use(cors(corsOptions));
 app.use(limiter);
 

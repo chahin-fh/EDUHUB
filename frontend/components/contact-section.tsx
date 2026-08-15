@@ -54,6 +54,7 @@ const contactInfo = [
 export default function ContactSection() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -63,10 +64,26 @@ export default function ContactSection() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1500));
-    setIsLoading(false);
-    setIsSubmitted(true);
+    setError("");
+    try {
+      const response = await fetch("http://localhost:5000/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Erreur lors de l'envoi du message");
+      }
+
+      setIsSubmitted(true);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Erreur lors de l'envoi du message");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isSubmitted) {
@@ -86,7 +103,7 @@ export default function ContactSection() {
               Merci de nous avoir contactés. Nous vous répondrons dans les plus brefs délais.
             </p>
             <Button
-              onClick={() => { setIsSubmitted(false); setFormData({ name: "", email: "", subject: "", message: "" }); }}
+              onClick={() => { setIsSubmitted(false); setError(""); setFormData({ name: "", email: "", subject: "", message: "" }); }}
               variant="outline"
               className="rounded-full"
             >
@@ -207,6 +224,11 @@ export default function ContactSection() {
                       className="border-gray-200 focus:border-blue-500 transition-all resize-none"
                     />
                   </div>
+                  {error && (
+                    <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                      {error}
+                    </p>
+                  )}
                   <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                     <Button
                       type="submit"

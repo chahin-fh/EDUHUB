@@ -2,6 +2,11 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
+const {
+  verificationEmail,
+  passwordResetEmail,
+  passwordResetConfirmationEmail,
+} = require("../config/emailTemplates");
 
 // Validate email format
 const isValidEmail = (email) => {
@@ -95,14 +100,10 @@ exports.registerUser = async (req, res) => {
       // Send verification email
       const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
 
-      const verificationMessage = `
-<h2>Email Verification Required</h2>
-<p>Dear ${user.name || user.username},</p>
-<p>Thank you for registering with EDUHUB! To activate your account, please click the link below:</p>
-<p><a href="${verificationUrl}">Verify Email Address</a></p>
-<p>This link will expire in 24 hours. If you didn't create an account, please ignore this email.</p>
-<p>Best regards,<br>EDUHUB Team</p>
-`;
+      const verificationMessage = verificationEmail(
+        user.name || user.username,
+        verificationUrl
+      );
 
       try {
         const transporter = createTransporter();
@@ -112,7 +113,7 @@ exports.registerUser = async (req, res) => {
         const mailOptions = {
           from: process.env.EMAIL_USER,
           to: user.email,
-          subject: "Verify Your Email - EDUHUB",
+          subject: "Vérifiez votre email – EDUHUB",
           html: verificationMessage,
         };
 
@@ -231,14 +232,7 @@ exports.forgotPassword = async (req, res) => {
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
     // Email message
-    const message = `
-<h2>Password Reset Request</h2>
-<p>Dear ${user.name || user.username},</p>
-<p>We received a request to reset your EDUHUB account password. Please click the link below to continue:</p>
-<p><a href="${resetUrl}">Reset Password</a></p>
-<p>This link will expire in 10 minutes. If you didn't request this action, please ignore this email.</p>
-<p>Best regards,<br>EDUHUB Security Team</p>
-`;
+    const message = passwordResetEmail(user.name || user.username, resetUrl);
 
     // Send email
     const transporter = createTransporter();
@@ -250,7 +244,7 @@ exports.forgotPassword = async (req, res) => {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: user.email,
-      subject: "Password Reset - EDUHUB",
+      subject: "Réinitialisation de votre mot de passe – EDUHUB",
       html: message,
     };
 
@@ -307,13 +301,7 @@ exports.resetPassword = async (req, res) => {
     await user.save();
 
     // Send confirmation email
-    const message = `
-<h2>Password Reset Successful</h2>
-<p>Dear ${user.name || user.username},</p>
-<p>This email confirms that your EDUHUB account password has been successfully reset.</p>
-<p>If you did not perform this action, please contact our support team immediately to secure your account.</p>
-<p>Best regards,<br>EDUHUB Security Team</p>
-`;
+    const message = passwordResetConfirmationEmail(user.name || user.username);
 
     const transporter = createTransporter();
     if (!transporter) {
@@ -324,7 +312,7 @@ exports.resetPassword = async (req, res) => {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: user.email,
-      subject: "Password Reset Successful - EDUHUB",
+      subject: "Mot de passe réinitialisé – EDUHUB",
       html: message,
     };
 
@@ -424,14 +412,10 @@ exports.resendVerificationEmail = async (req, res) => {
     // Send verification email
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
 
-    const verificationMessage = `
-<h2>Verify Your Email Address</h2>
-<p>Dear ${user.name || user.username},</p>
-<p>Please verify your email address to activate your EDUHUB account by clicking the link below:</p>
-<p><a href="${verificationUrl}">Verify Email Address</a></p>
-<p>This verification link will expire in 24 hours.</p>
-<p>Best regards,<br>EDUHUB Team</p>
-`;
+    const verificationMessage = verificationEmail(
+      user.name || user.username,
+      verificationUrl
+    );
 
     const transporter = createTransporter();
     if (!transporter) {
@@ -442,7 +426,7 @@ exports.resendVerificationEmail = async (req, res) => {
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: user.email,
-      subject: "Verify Your Email - EDUHUB",
+      subject: "Vérifiez votre email – EDUHUB",
       html: verificationMessage,
     };
 

@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const { renderEmail } = require("./emailTemplates");
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
@@ -22,24 +23,47 @@ const sendEmail = async (options) => {
 };
 
 // Templates
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+
 const emailTemplates = {
-  welcome: (name) => `
-    <h1>Bienvenue sur EDUHUB, ${name}!</h1>
-    <p>Votre compte a été créé avec succès.</p>
-  `,
+  welcome: (name) =>
+    renderEmail({
+      preheader: "Bienvenue sur EDUHUB !",
+      title: "Bienvenue sur EDUHUB",
+      greeting: `Bonjour ${name},`,
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Votre compte a été créé avec succès. Nous sommes ravis de vous compter parmi nous&nbsp;!</p>
+        <p style="margin:0 0 14px;">Explorez les matières, trouvez des mentors et commencez à apprendre dès aujourd'hui.</p>
+      `,
+      buttonLabel: "Explorer EDUHUB",
+      buttonUrl: FRONTEND_URL,
+    }),
 
-  enrollmentSuccess: (name, courseTitle) => `
-    <h1>Inscription confirmée!</h1>
-    <p>Bonjour ${name},</p>
-    <p>Vous êtes maintenant inscrit au cours: <strong>${courseTitle}</strong></p>
-    <a href="${process.env.FRONTEND_URL}/my-courses">Accéder à mes cours</a>
-  `,
+  enrollmentSuccess: (name, courseTitle) =>
+    renderEmail({
+      preheader: "Inscription confirmée au cours",
+      title: "Inscription confirmée",
+      greeting: `Bonjour ${name},`,
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Vous êtes maintenant inscrit au cours&nbsp;: <strong>${courseTitle}</strong>.</p>
+        <p style="margin:0 0 14px;">Bon apprentissage&nbsp;!</p>
+      `,
+      buttonLabel: "Accéder à mes cours",
+      buttonUrl: `${FRONTEND_URL}/my-courses`,
+    }),
 
-  certificateEarned: (name, courseTitle, certificateUrl) => `
-    <h1>Félicitations ${name}!</h1>
-    <p>Vous avez terminé le cours: <strong>${courseTitle}</strong></p>
-    <a href="${certificateUrl}">Télécharger le certificat</a>
-  `,
+  certificateEarned: (name, courseTitle, certificateUrl) =>
+    renderEmail({
+      preheader: `Félicitations ${name} !`,
+      title: "Félicitations 🎉",
+      greeting: `Félicitations ${name},`,
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Vous avez terminé le cours&nbsp;: <strong>${courseTitle}</strong>.</p>
+        <p style="margin:0 0 14px;">Téléchargez votre certificat ci-dessous pour célébrer cette réussite&nbsp;!</p>
+      `,
+      buttonLabel: "Télécharger le certificat",
+      buttonUrl: certificateUrl,
+    }),
 };
 
 module.exports = { sendEmail, emailTemplates };

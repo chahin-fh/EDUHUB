@@ -14,7 +14,7 @@ const {
 const protect = require("../middleware/authMiddleware");
 const { adminOnly } = protect;
 const User = require("../models/User");
-const { uploadImage } = require("../config/cloudinary");
+const { uploadAvatar } = require("../config/multer");
 
 // Local Auth
 router.post("/inscription", registerUser);
@@ -41,14 +41,20 @@ router.get("/me", protect, (req, res) => {
 router.post(
   "/upload-avatar",
   protect,
-  uploadImage.single("avatar"),
+  uploadAvatar.single("avatar"),
   async (req, res) => {
     try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Aucun fichier reçu" });
+      }
+
       const user = await User.findById(req.user._id);
-      user.avatar = req.file.path;
+      // Stocker une URL absolue pour que l'avatar s'affiche partout
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      user.avatar = `${baseUrl}/uploads/avatars/${req.file.filename}`;
       await user.save();
 
-      res.json({ success: true, url: req.file.path });
+      res.json({ success: true, url: user.avatar });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }

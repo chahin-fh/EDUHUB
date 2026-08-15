@@ -72,6 +72,48 @@ const uploadDocument = multer({
   },
 });
 
+// Configuration du stockage local pour les avatars
+const avatarsDir = path.join(uploadsDir, "avatars");
+
+if (!fs.existsSync(avatarsDir)) {
+  fs.mkdirSync(avatarsDir, { recursive: true });
+}
+
+const avatarStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, avatarsDir);
+  },
+  filename: function (req, file, cb) {
+    // Générer un nom de fichier unique
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, "avatar-" + uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+// Types d'images autorisés
+const allowedImageMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+// Middleware pour l'upload d'avatars
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
+  fileFilter: function (req, file, cb) {
+    // Vérifier que le fichier est une image autorisée
+    if (allowedImageMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      const error = new Error(
+        "Type de fichier non autorisé. Formats acceptés: JPG, PNG, WEBP, GIF"
+      );
+      error.status = 400;
+      cb(error, false);
+    }
+  },
+});
+
 module.exports = {
   uploadDocument,
+  uploadAvatar,
 };
