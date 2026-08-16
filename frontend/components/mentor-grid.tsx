@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import MentorCard from "./mentor-card";
 import { Users as UsersIcon } from "lucide-react";
 import { getExpertiseLabel, type ExpertiseItem } from "@/lib/utils";
@@ -32,15 +32,7 @@ export default function UserGrid({ subject, search }: UserGridProps) {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    filterUsers();
-  }, [search, subject, users]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -57,9 +49,9 @@ export default function UserGrid({ subject, search }: UserGridProps) {
       console.error("Error loading users", error);
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const filterUsers = () => {
+  const filterUsers = useCallback(() => {
     let filtered = [...users];
 
     if (search.trim()) {
@@ -84,7 +76,15 @@ export default function UserGrid({ subject, search }: UserGridProps) {
     }
 
     setFilteredUsers(filtered);
-  };
+  }, [users, search, subject]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    filterUsers();
+  }, [search, subject, users, filterUsers]);
 
   return (
     <section className="py-20">

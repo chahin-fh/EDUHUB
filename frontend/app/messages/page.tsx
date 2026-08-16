@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -591,9 +592,12 @@ export default function MessagesPage() {
                                         rel="noreferrer"
                                         className="block"
                                       >
-                                        <img
+                                        <Image
                                           src={fullUrl}
                                           alt={att.name}
+                                          width={400}
+                                          height={300}
+                                          unoptimized
                                           className="max-h-52 w-auto rounded-lg object-cover border border-black/10"
                                         />
                                       </a>

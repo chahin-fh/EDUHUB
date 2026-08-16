@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import {
   ArrowLeft,
   Check,
@@ -226,7 +227,7 @@ export default function ChatWidget() {
     }
   };
 
-  const calculateUnreadCount = () => {
+  const calculateUnreadCount = useCallback(() => {
     let count = 0;
     conversations.forEach((conv) => {
       if (
@@ -238,7 +239,7 @@ export default function ChatWidget() {
       }
     });
     return count;
-  };
+  }, [conversations, currentUserId]);
 
   const refreshConversations = async () => {
     const data = await apiFetch<{ conversations: ConversationType[] }>(
@@ -488,6 +489,7 @@ export default function ChatWidget() {
     return () => {
       window.clearInterval(id);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   // Socket initialization
@@ -714,6 +716,7 @@ export default function ChatWidget() {
     return () => {
       window.clearInterval(id);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isOpen, selectedConversationId]);
 
   useEffect(() => {
@@ -764,7 +767,7 @@ export default function ChatWidget() {
   useEffect(() => {
     const count = calculateUnreadCount();
     setUnreadCount(count);
-  }, [conversations, selectedConversationId]);
+  }, [conversations, selectedConversationId, calculateUnreadCount]);
 
   if (!isAuthenticated) {
     return null;
@@ -1110,9 +1113,12 @@ export default function ChatWidget() {
                                               rel="noreferrer"
                                               className="block"
                                             >
-                                              <img
+                                              <Image
                                                 src={fullUrl}
                                                 alt={att.name}
+                                                width={400}
+                                                height={300}
+                                                unoptimized
                                                 className="max-h-44 w-auto rounded-md object-cover border border-black/10"
                                               />
                                             </a>

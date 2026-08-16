@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -122,12 +123,7 @@ export default function UserDetailPage() {
   const [sendingRequest, setSendingRequest] = useState(false);
   // const [paymentOpen, setPaymentOpen] = useState(false); // ⚠️ Paiement commenté
 
-  useEffect(() => {
-    fetchUserDetails();
-    fetchReviews();
-  }, [userId]);
-
-  const fetchUserDetails = async () => {
+  const fetchUserDetails = useCallback(async () => {
     try {
       setLoading(true);
       const token =
@@ -173,9 +169,9 @@ export default function UserDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, router]);
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       const res = await fetch(
         `http://localhost:5000/api/reviews/user/${userId}`
@@ -188,7 +184,12 @@ export default function UserDetailPage() {
     } catch (err) {
       console.error("Error fetching reviews:", err);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchUserDetails();
+    fetchReviews();
+  }, [userId, fetchUserDetails, fetchReviews]);
 
   const handleSendRequest = async () => {
     if (!isAuthenticated) {
@@ -338,7 +339,7 @@ export default function UserDetailPage() {
           <div className="flex flex-col lg:flex-row items-center gap-8">
             <div className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
               {userData.avatar ? (
-                <img src={userData.avatar} alt={userData.name} className="w-24 h-24 rounded-full object-cover" />
+                <Image src={userData.avatar} alt={userData.name} width={96} height={96} unoptimized className="w-24 h-24 rounded-full object-cover" />
               ) : (
                 <span className="text-white text-3xl font-bold">
                   {(userData.name || userData.username || "U").charAt(0)}

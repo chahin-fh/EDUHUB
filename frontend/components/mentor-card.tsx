@@ -2,6 +2,7 @@
 
 import { useState, type MouseEvent } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Star, Github, Linkedin, Twitter, MessageCircle } from "lucide-react"
 import { getExpertiseLabel, type ExpertiseItem } from "@/lib/utils"
 
@@ -57,10 +58,13 @@ export default function MentorCard({ user }: MentorCardProps) {
       {/* Image Section */}
       <div className="aspect-square bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-6xl cursor-pointer relative overflow-hidden">
         {user.avatar ? (
-          <img
+          <Image
             src={user.avatar}
             alt={user.name || user.username}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-300"
+            fill
+            unoptimized
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-cover transition-transform duration-300"
             style={{ transform: isHovered ? "scale(1.1)" : "scale(1)" }}
           />
         ) : (

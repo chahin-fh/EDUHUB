@@ -404,7 +404,7 @@ export default function SubjectManager() {
                       <Label htmlFor="bulkMode" className="text-sm font-medium text-gray-700 cursor-pointer">
                         Ajout multiple
                       </Label>
-                      <p className="text-xs text-gray-400">Ajoutez plusieurs matières d'un coup</p>
+                      <p className="text-xs text-gray-400">Ajoutez plusieurs matières d&apos;un coup</p>
                     </div>
                   </div>
                   <Switch

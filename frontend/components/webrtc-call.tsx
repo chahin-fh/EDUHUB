@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
   forwardRef,
   useImperativeHandle,
 } from "react";
@@ -94,12 +95,15 @@ export const WebRTCCall = forwardRef<WebRTCCallHandle, WebRTCCallProps>(
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
 
-  const configuration: RTCConfiguration = {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
-    ],
-  };
+  const configuration: RTCConfiguration = useMemo(
+    () => ({
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+      ],
+    }),
+    []
+  );
 
   // Connect to Socket.io
   useEffect(() => {
@@ -254,7 +258,7 @@ export const WebRTCCall = forwardRef<WebRTCCallHandle, WebRTCCallProps>(
       peerConnectionRef.current = pc;
       return pc;
     },
-    [socket, userId]
+    [socket, userId, configuration]
   );
 
   const startCall = useCallback(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,11 +126,7 @@ export default function EstablishmentManager() {
     featured: false,
   });
 
-  useEffect(() => {
-    fetchEstablishments();
-  }, [searchTerm, filterType]);
-
-  const fetchEstablishments = async () => {
+  const fetchEstablishments = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -150,7 +146,11 @@ export default function EstablishmentManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm, filterType]);
+
+  useEffect(() => {
+    fetchEstablishments();
+  }, [searchTerm, filterType, fetchEstablishments]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

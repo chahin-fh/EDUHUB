@@ -231,7 +231,7 @@ export default function MentorOverview() {
               {s.courses.length === 0 ? (
                 <div className="py-10 text-center">
                   <BookOpen className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">Vous n'avez pas encore créé de cours</p>
+                  <p className="text-gray-500">Vous n&apos;avez pas encore créé de cours</p>
                   <Button onClick={() => router.push("/cours/upload")} className="mt-4 gap-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
                     <Plus className="h-4 w-4" /> Créer mon premier cours
                   </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -164,11 +164,7 @@ export default function MentorsPage() {
   const [totalMentors, setTotalMentors] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    fetchMentors();
-  }, [searchQuery, selectedSubject, selectedRating, selectedExperience, currentPage]);
-
-  const fetchMentors = async () => {
+  const fetchMentors = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -201,7 +197,11 @@ export default function MentorsPage() {
     } catch (err) {
       setError("Erreur lors du chargement des mentors");
     } finally { setLoading(false); }
-  };
+  }, [searchQuery, selectedSubject, selectedRating, selectedExperience, currentPage]);
+
+  useEffect(() => {
+    fetchMentors();
+  }, [searchQuery, selectedSubject, selectedRating, selectedExperience, currentPage, fetchMentors]);
 
   const clearFilters = () => {
     setSearchQuery(""); setSelectedSubject(""); setSelectedRating("");
