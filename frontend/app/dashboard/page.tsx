@@ -335,7 +335,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="p-4 border-t border-gray-100">
                     <Button variant="ghost" className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl">
-                      Voir toute l'activité
+                      Voir toute l&apos;activité
                     </Button>
                   </div>
                 </CardContent>

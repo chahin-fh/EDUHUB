@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -171,10 +171,30 @@ export default function DemandesPage() {
 
   const currentUserId = (user as any)?._id || (user as any)?.id || "";
 
+  const fetchRequests = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("authToken");
+      const res = await fetch("http://localhost:5000/api/matching/requests", {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      if (res.status === 401) { router.push("/connexion"); return; }
+      const data = await res.json();
+      if (data.success) {
+        setSentRequests(data.sent || []);
+        setReceivedRequests(data.received || []);
+      } else setError(data.message || "Erreur");
+    } catch (err) {
+      setError("Erreur lors du chargement");
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
   useEffect(() => {
     if (!isAuthenticated) { router.push("/connexion"); return; }
     fetchRequests();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, router, fetchRequests]);
 
   // Notification temps réel quand un mentor répond à une de mes demandes
   useEffect(() => {
@@ -201,28 +221,7 @@ export default function DemandesPage() {
     return () => {
       socket.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, currentUserId]);
-
-  const fetchRequests = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("authToken");
-      const res = await fetch("http://localhost:5000/api/matching/requests", {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      });
-      if (res.status === 401) { router.push("/connexion"); return; }
-      const data = await res.json();
-      if (data.success) {
-        setSentRequests(data.sent || []);
-        setReceivedRequests(data.received || []);
-      } else setError(data.message || "Erreur");
-    } catch (err) {
-      setError("Erreur lors du chargement");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [isAuthenticated, currentUserId, fetchRequests]);
 
   const handleRespond = async (requestId: string, status: "accepted" | "declined") => {
     setProcessingId(requestId);
