@@ -71,6 +71,16 @@ const userSchema = new mongoose.Schema(
     avatar: String,
     bio: String,
 
+    // --- Coordonnées du profil ---
+    firstName: String,
+    lastName: String,
+    phone: String,
+    birthdate: String,
+    city: String,
+    country: String,
+    github: String,
+    linkedin: String,
+
     // --- Peer-to-peer learning fields ---
 
     // What the user wants to learn

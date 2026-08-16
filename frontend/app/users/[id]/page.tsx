@@ -36,6 +36,7 @@ import { useAuth } from "@/contexts/AuthContext";
 // import { useCanContactMonitors } from "@/hooks/use-active-enrollment";
 // import PaymentDialog from "@/components/payment-dialog";
 import { RatingStars, ReviewForm } from "@/components/rating-stars";
+import SocialLinks from "@/components/social-links";
 import { PageTransition, AnimatedSection, StaggerContainer, StaggerItem, AnimatedCard } from "@/components/animated-section";
 import { toast } from "sonner";
 
@@ -85,6 +86,8 @@ interface UserData {
   learningGoals?: LearningGoal[];
   avatar?: string;
   bio?: string;
+  github?: string;
+  linkedin?: string;
   createdAt: string;
   lastLogin?: string;
   isActive: boolean;
@@ -353,6 +356,11 @@ export default function UserDetailPage() {
               {userData.bio && (
                 <p className="text-gray-600 mt-2">{userData.bio}</p>
               )}
+              <SocialLinks
+                github={userData.github}
+                linkedin={userData.linkedin}
+                className="mt-3 justify-center lg:justify-start"
+              />
               <div className="flex flex-wrap gap-2 mt-3 justify-center lg:justify-start">
                 {userData.monitorProfile?.expertise?.map((exp, idx) => (
                   <Badge key={idx} className="bg-blue-100 text-blue-800">

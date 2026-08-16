@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
   Sparkles,
   X,
   TrendingUp,
+  BadgeCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -190,10 +192,10 @@ export default function UsersPage() {
     return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Utilisateur</Badge>;
   };
 
-  const getRoleIcon = (role: string, isMonitor: boolean) => {
-    if (role === "admin") return <Shield className="h-4 w-4 text-red-600" />;
-    if (isMonitor) return <Star className="h-4 w-4 text-blue-600" />;
-    return <Users className="h-4 w-4 text-gray-600" />;
+  const getHeaderGradient = (u: User) => {
+    if (u.role === "admin") return "from-red-500 via-rose-500 to-pink-600";
+    if (u.isMonitor) return "from-purple-500 via-purple-600 to-blue-600";
+    return "from-blue-500 via-blue-600 to-indigo-600";
   };
 
   useEffect(() => {
@@ -459,30 +461,71 @@ export default function UsersPage() {
               <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
                 {filteredUsers.map((u) => (
                   <StaggerItem key={u._id}>
-                    <Link href={`/users/${u._id}`}>
+                    <Link href={`/users/${u._id}`} className="block h-full">
                       <motion.div
                         whileHover={{ y: -6, scale: 1.02 }}
-                        className="group bg-white/90 backdrop-blur-sm border border-gray-200/80 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer h-full"
+                        className="group bg-white/90 backdrop-blur-sm border border-gray-200/80 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer h-full flex flex-col"
                       >
-                        {/* Header gradient */}
-                        <div className="relative h-32 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 overflow-hidden">
-                          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/10 to-transparent" />
+                        {/* Header gradient selon le rôle */}
+                        <div className={`relative h-28 bg-gradient-to-br ${getHeaderGradient(u)} overflow-hidden`}>
+                          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/20 to-transparent" />
+                          <div className="absolute inset-0 opacity-[0.06] bg-[radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:18px_18px]" />
                           <div className="absolute top-3 right-3 z-10">{getRoleBadge(u.role, u.isMonitor)}</div>
-                          <div className="absolute -bottom-6 left-5">
-                            <motion.div whileHover={{ scale: 1.15 }} className="w-14 h-14 rounded-xl bg-white shadow-lg flex items-center justify-center border-2 border-white">
-                              {getRoleIcon(u.role, u.isMonitor)}
+                          {/* Avatar / initiales — toujours visible */}
+                          <div className="absolute -bottom-10 left-5 z-10">
+                            <motion.div
+                              whileHover={{ scale: 1.1, rotate: 3 }}
+                              className="relative w-20 h-20 rounded-full bg-white shadow-lg p-1 ring-2 ring-white"
+                            >
+                              <Avatar className="w-full h-full rounded-full">
+                                <AvatarImage
+                                  src={u.avatar}
+                                  alt={u.name || u.username}
+                                  className="rounded-full object-cover"
+                                />
+                                <AvatarFallback className="rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white text-2xl font-bold">
+                                  {(u.name || u.username || "U").charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
                             </motion.div>
+                            <span
+                              className={`absolute top-0.5 right-0.5 w-4 h-4 rounded-full border-2 border-white ${
+                                u.isActive ? "bg-green-500" : "bg-gray-300"
+                              }`}
+                              title={u.isActive ? "Actif" : "Inactif"}
+                            />
                           </div>
                         </div>
 
                         {/* Content */}
-                        <div className="p-5 pt-10">
-                          <h3 className="text-lg font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-                            {u.name || u.username}
-                          </h3>
+                        <div className="p-5 pt-14 flex-1 flex flex-col">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h3 className="text-lg font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                                {u.name || u.username}
+                              </h3>
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
+                                {u.isMonitor && (
+                                  <span className="flex items-center gap-1 text-xs text-purple-600 font-medium">
+                                    <Star className="h-3 w-3 fill-purple-600 text-purple-600" />
+                                    {u.monitorProfile?.rating
+                                      ? u.monitorProfile.rating.toFixed(1)
+                                      : "Nouveau"}
+                                  </span>
+                                )}
+                                {u.emailVerified && (
+                                  <span className="flex items-center gap-1 text-xs text-blue-600">
+                                    <BadgeCheck className="h-3.5 w-3.5" />
+                                    Vérifié
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all flex-shrink-0 mt-1" />
+                          </div>
 
-                          <div className="flex items-center gap-2 mb-2">
-                            <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <div className="flex items-center gap-2 mt-2 mb-2">
+                            <Mail className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                             <span className="text-sm text-gray-500 truncate">{u.email}</span>
                           </div>
 
@@ -491,46 +534,30 @@ export default function UsersPage() {
                           )}
 
                           {u.monitorProfile?.expertise && u.monitorProfile.expertise.length > 0 && (
-                            <div className="mb-3">
-                              <div className="flex flex-wrap gap-1">
-                                {u.monitorProfile.expertise.slice(0, 2).map((exp, idx) => (
-                                  <Badge key={idx} variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                                    {getExpertiseLabel(exp)}
-                                  </Badge>
-                                ))}
-                                {u.monitorProfile.expertise.length > 2 && (
-                                  <Badge variant="secondary" className="text-xs bg-gray-50">
-                                    +{u.monitorProfile.expertise.length - 2}
-                                  </Badge>
-                                )}
-                              </div>
+                            <div className="flex flex-wrap gap-1.5 mb-3">
+                              {u.monitorProfile.expertise.slice(0, 2).map((exp, idx) => (
+                                <Badge key={idx} variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                  {getExpertiseLabel(exp)}
+                                </Badge>
+                              ))}
+                              {u.monitorProfile.expertise.length > 2 && (
+                                <Badge variant="secondary" className="text-xs bg-gray-50">
+                                  +{u.monitorProfile.expertise.length - 2}
+                                </Badge>
+                              )}
                             </div>
                           )}
 
-                          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                          {/* Pied de carte */}
+                          <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                              <Calendar className="h-3 w-3" />
+                              <span>Membre depuis {new Date(u.createdAt).getFullYear()}</span>
+                            </div>
                             <div className="flex items-center gap-1.5 text-xs text-gray-400">
                               <BookOpen className="h-3 w-3" />
                               <span>{u.monitorProfile?.coursesCreated || 0} cours</span>
                             </div>
-                            <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                              <Calendar className="h-3 w-3" />
-                              <span>{formatDate(u.createdAt)}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 mt-3">
-                            <div className="flex items-center gap-1">
-                              <div className={`w-2 h-2 rounded-full ${u.isActive ? "bg-green-500" : "bg-gray-300"}`} />
-                              <span className={`text-xs ${u.isActive ? "text-green-600" : "text-gray-400"}`}>
-                                {u.isActive ? "Actif" : "Inactif"}
-                              </span>
-                            </div>
-                            {u.emailVerified && (
-                              <div className="flex items-center gap-1">
-                                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                <span className="text-xs text-blue-600">Vérifié</span>
-                              </div>
-                            )}
                           </div>
                         </div>
                       </motion.div>

@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { ActivityChart } from "@/components/dashboard/activity-chart";
 import MentorOverview from "@/components/dashboard/mentor-overview";
+import EmailVerificationBanner from "@/components/email-verification-banner";
 import { motion } from "framer-motion";
 import { PageTransition, AnimatedSection, StaggerContainer, StaggerItem, AnimatedCard } from "@/components/animated-section";
 
@@ -46,6 +47,7 @@ interface User {
   email: string;
   avatar?: string;
   role?: string;
+  emailVerified?: boolean;
 }
 
 interface DashboardStats {
@@ -256,6 +258,14 @@ export default function DashboardPage() {
               </div>
             )}
           </AnimatedSection>
+
+          {/* Bannière vérification d'email */}
+          {user?.emailVerified === false && user?.role !== "admin" && (
+            <EmailVerificationBanner
+              email={user.email}
+              className="mb-8"
+            />
+          )}
 
           {/* Vue Moniteur (stats mentor, cours, inscriptions) */}
           {isMonitorOrAdmin && view === "mentor" && (

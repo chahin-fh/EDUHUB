@@ -3,7 +3,7 @@
 import { useState, type MouseEvent } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Star, Github, Linkedin, Twitter, MessageCircle } from "lucide-react"
+import { Star, Github, Linkedin, MessageCircle } from "lucide-react"
 import { getExpertiseLabel, type ExpertiseItem } from "@/lib/utils"
 
 interface User {
@@ -16,6 +16,8 @@ interface User {
   isActive: boolean;
   createdAt: string;
   avatar?: string;
+  github?: string;
+  linkedin?: string;
   monitorProfile?: {
     expertise: ExpertiseItem[];
     rating: number;
@@ -47,6 +49,13 @@ export default function MentorCard({ user }: MentorCardProps) {
     : "Mentor";
   const rating = user.monitorProfile?.rating || 0;
   const description = user.bio || "No description provided.";
+
+  const normalizeUrl = (url?: string) => {
+    if (!url) return null;
+    const trimmed = url.trim();
+    if (!trimmed) return null;
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  };
 
   return (
     <div
@@ -82,17 +91,35 @@ export default function MentorCard({ user }: MentorCardProps) {
 
       {/* Content */}
       <div className="p-6">
-        {/* Social Icons */}
-        <div className="flex gap-3 mb-4">
-          <button className="p-2 hover:bg-muted rounded-lg transition hover:text-primary">
-            <Github size={18} className="text-muted-foreground" />
-          </button>
-          <button className="p-2 hover:bg-muted rounded-lg transition hover:text-primary">
-            <Linkedin size={18} className="text-muted-foreground" />
-          </button>
-          <button className="p-2 hover:bg-muted rounded-lg transition hover:text-primary">
-            <Twitter size={18} className="text-muted-foreground" />
-          </button>
+        {/* Social Icons : cliquables si lien renseigné, inactifs sinon */}
+        <div className="flex gap-1 mb-4">
+          {[
+            { href: normalizeUrl(user.github), icon: Github, label: "GitHub" },
+            { href: normalizeUrl(user.linkedin), icon: Linkedin, label: "LinkedIn" },
+          ].map(({ href, icon: Icon, label }) =>
+            href ? (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={label}
+                onClick={(e) => e.stopPropagation()}
+                className="p-2 hover:bg-muted rounded-lg transition hover:text-primary"
+              >
+                <Icon size={18} className="text-muted-foreground" />
+              </a>
+            ) : (
+              <span
+                key={label}
+                title={`${label} non renseigné`}
+                aria-disabled="true"
+                className="p-2 rounded-lg cursor-not-allowed opacity-50"
+              >
+                <Icon size={18} className="text-muted-foreground" />
+              </span>
+            )
+          )}
         </div>
 
         {/* Name & Title */}

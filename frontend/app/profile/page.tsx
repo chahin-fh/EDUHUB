@@ -32,6 +32,8 @@ import {
   Clock,
   Star,
   GraduationCap,
+  Github,
+  Linkedin,
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,6 +44,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SubjectsDisplay from "@/components/subjects-display";
 import MentorsDisplay from "@/components/mentors-display";
+import EmailVerificationBanner from "@/components/email-verification-banner";
+import SocialLinks from "@/components/social-links";
 import { PageTransition, AnimatedSection, AnimatedCard, StaggerContainer, StaggerItem } from "@/components/animated-section";
 
 export default function ProfilePage() {
@@ -51,7 +55,15 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [birthdate, setBirthdate] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("");
+  const [github, setGithub] = useState("");
+  const [linkedin, setLinkedin] = useState("");
   const [about, setAbout] = useState("");
+  const [saveMessage, setSaveMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [subjects, setSubjects] = useState<
     { subjectId: string; subjectName: string; level: string }[]
   >([]);
@@ -87,7 +99,11 @@ export default function ProfilePage() {
       setEmail(user.email || "");
       setPhone(user.phone || "");
       setBirthdate(user.birthdate || "");
-      setAbout(user.about || "");
+      setCity(user.city || "");
+      setCountry(user.country || "");
+      setGithub(user.github || "");
+      setLinkedin(user.linkedin || "");
+      setAbout(user.about || user.bio || "");
 
       // Load expertise from user
       if (user.monitorProfile?.expertise) {
@@ -132,6 +148,27 @@ export default function ProfilePage() {
     fetchSubjects();
   }, []);
 
+  // Résout les noms des matières quand elles sont stockées comme simple ID
+  // (ex: données du localStorage avant population) : remplace l'ID par le nom.
+  useEffect(() => {
+    if (availableSubjects.length === 0) return;
+
+    const resolveName = (subjectId: string, currentName: string) => {
+      const found = availableSubjects.find((a) => a._id === subjectId);
+      if (found && (!currentName || currentName === subjectId)) {
+        return found.name;
+      }
+      return currentName;
+    };
+
+    setSubjects((prev) =>
+      prev.map((s) => ({ ...s, subjectName: resolveName(s.subjectId, s.subjectName) }))
+    );
+    setLearningGoals((prev) =>
+      prev.map((g) => ({ ...g, subjectName: resolveName(g.subjectId, g.subjectName) }))
+    );
+  }, [availableSubjects]);
+
   const handleTeachingSubjectChange = (subject: {
     subjectId: string;
     subjectName: string;
@@ -174,6 +211,7 @@ export default function ProfilePage() {
 
   const handleSaveChanges = async () => {
     setIsSaving(true);
+    setSaveMessage(null);
     try {
       const updatedUserData = {
         firstName,
@@ -181,6 +219,10 @@ export default function ProfilePage() {
         email,
         phone,
         birthdate,
+        city,
+        country,
+        github,
+        linkedin,
         about,
         // Send expertise as array of { subject: ObjectId, level: string }
         expertise: subjects.map((s) => ({
@@ -203,16 +245,32 @@ export default function ProfilePage() {
         body: JSON.stringify(updatedUserData),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        updateUser(data.user);
-        console.log("Profil mis à jour avec succès");
-      } else {
-        const errData = await response.json();
-        console.error("Erreur lors de la mise à jour du profil:", errData);
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Erreur lors de la mise à jour du profil"
+        );
       }
-    } catch (error) {
+
+      updateUser(data.user);
+      setSaveMessage({
+        type: "success",
+        text: "Profil mis à jour avec succès",
+      });
+
+      if (data.emailChanged) {
+        setSaveMessage({
+          type: "success",
+          text: "Profil mis à jour. Un email de vérification a été envoyé à votre nouvelle adresse — votre compte devra être re-vérifié.",
+        });
+      }
+    } catch (error: any) {
       console.error("Erreur:", error);
+      setSaveMessage({
+        type: "error",
+        text: error.message || "Une erreur est survenue lors de la mise à jour",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -265,7 +323,11 @@ export default function ProfilePage() {
     return <div>Chargement du profil...</div>;
   }
 
-  const avatarChar = (user.username || "U").charAt(0).toUpperCase();
+  const displayName =
+    [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+    user.username ||
+    "Utilisateur";
+  const avatarChar = (displayName || "U").charAt(0).toUpperCase();
 
   return (
     <PageTransition>
@@ -292,6 +354,29 @@ export default function ProfilePage() {
                 </Button>
               </motion.div>
             </AnimatedSection>
+
+            {user.emailVerified === false && user.role !== "admin" && (
+              <EmailVerificationBanner email={user.email} />
+            )}
+
+            {saveMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`p-4 rounded-xl border text-sm flex items-start gap-3 ${
+                  saveMessage.type === "success"
+                    ? "bg-green-50 border-green-200 text-green-800"
+                    : "bg-red-50 border-red-200 text-red-800"
+                }`}
+              >
+                {saveMessage.type === "success" ? (
+                  <Check className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <X className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                )}
+                <span>{saveMessage.text}</span>
+              </motion.div>
+            )}
 
           <Tabs
             value={activeTab}
@@ -378,9 +463,14 @@ export default function ProfilePage() {
                       )}
                       <div className="text-center space-y-2">
                         <h2 className="text-2xl font-bold text-gray-900">
-                          {user.username}
+                          {displayName}
                         </h2>
                         <p className="text-gray-600">{user.email}</p>
+                        <SocialLinks
+                          github={user.github}
+                          linkedin={user.linkedin}
+                          className="justify-center"
+                        />
                         <div className="flex flex-wrap gap-2 justify-center">
                           <Badge
                             variant="secondary"
@@ -555,6 +645,8 @@ export default function ProfilePage() {
                       <Input
                         id="city"
                         placeholder="Tunis"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
                         className="bg-white/50"
                       />
                     </div>
@@ -563,9 +655,39 @@ export default function ProfilePage() {
                       <Input
                         id="country"
                         placeholder="Tunisie"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
                         className="bg-white/50"
                       />
                     </div>
+                    <Separator />
+                    <div className="space-y-2">
+                      <Label htmlFor="github">GitHub</Label>
+                      <div className="relative">
+                        <Github className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="github"
+                          placeholder="https://github.com/pseudo"
+                          value={github}
+                          onChange={(e) => setGithub(e.target.value)}
+                          className="bg-white/50 pl-10"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="linkedin">LinkedIn</Label>
+                      <div className="relative">
+                        <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="linkedin"
+                          placeholder="https://linkedin.com/in/pseudo"
+                          value={linkedin}
+                          onChange={(e) => setLinkedin(e.target.value)}
+                          className="bg-white/50 pl-10"
+                        />
+                      </div>
+                    </div>
+                    <Separator />
                     <div className="space-y-2">
                       <Label htmlFor="bio">Biographie</Label>
                       <Textarea

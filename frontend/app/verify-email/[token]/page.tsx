@@ -62,6 +62,18 @@ export default function VerifyEmailPage() {
         setMessage(
           "Votre email a été vérifié avec succès ! Vous pouvez maintenant accéder à toutes les fonctionnalités d'EDUHUB."
         );
+
+        // Si l'utilisateur est déjà connecté, mettre à jour son statut local
+        try {
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const parsed = JSON.parse(storedUser);
+            parsed.emailVerified = true;
+            localStorage.setItem("user", JSON.stringify(parsed));
+          }
+        } catch {
+          // ignore
+        }
       } catch (err: any) {
         setError(
           err.message || "Une erreur est survenue lors de la vérification"

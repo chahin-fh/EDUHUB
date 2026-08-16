@@ -38,8 +38,13 @@ interface User {
   lastName?: string;
   phone?: string;
   birthdate?: string;
+  city?: string;
+  country?: string;
+  github?: string;
+  linkedin?: string;
   about?: string;
   bio?: string;
+  emailVerified?: boolean;
   expertise?: string[];
   role?: string;
   isMonitor?: boolean;

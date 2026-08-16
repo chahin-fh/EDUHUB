@@ -1,4 +1,9 @@
 const User = require("../models/User");
+const {
+  generateVerificationToken,
+  createTransporter,
+} = require("./authController");
+const { verificationEmail } = require("../config/emailTemplates");
 
 // @desc    Update user profile
 // @route   PUT /api/users/profile
@@ -11,6 +16,10 @@ exports.updateProfile = async (req, res) => {
       email,
       phone,
       birthdate,
+      city,
+      country,
+      github,
+      linkedin,
       about,
       subjects, // Array of strings (subject names) for backward compatibility
       expertise, // Array of { subject: ObjectId, level: string }
@@ -27,10 +36,54 @@ exports.updateProfile = async (req, res) => {
     // Update basic fields
     if (firstName !== undefined) user.firstName = firstName;
     if (lastName !== undefined) user.lastName = lastName;
-    if (email !== undefined) user.email = email;
     if (phone !== undefined) user.phone = phone;
     if (birthdate !== undefined) user.birthdate = birthdate;
+    if (city !== undefined) user.city = city;
+    if (country !== undefined) user.country = country;
+    if (github !== undefined) user.github = github;
+    if (linkedin !== undefined) user.linkedin = linkedin;
     if (about !== undefined) user.bio = about;
+
+    // Handle email change : unicité + re-vérification obligatoire
+    let emailChanged = false;
+    if (email !== undefined && email.toLowerCase() !== user.email.toLowerCase()) {
+      const existing = await User.findOne({ email: email.toLowerCase() });
+      if (existing && existing._id.toString() !== user._id.toString()) {
+        return res
+          .status(400)
+          .json({ message: "Cet email est déjà utilisé par un autre compte" });
+      }
+
+      user.email = email.toLowerCase();
+      // Un nouvel email = compte à re-vérifier
+      user.emailVerified = false;
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpires = undefined;
+      emailChanged = true;
+
+      // Générer un nouveau token et envoyer l'email de vérification
+      try {
+        const verificationToken = generateVerificationToken();
+        user.emailVerificationToken = verificationToken;
+        user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
+
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+        const transporter = createTransporter();
+        if (transporter) {
+          await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: user.email,
+            subject: "Vérifiez votre nouvel email – EDUHUB",
+            html: verificationEmail(
+              user.name || user.username,
+              verificationUrl
+            ),
+          });
+        }
+      } catch (emailError) {
+        console.error("Failed to send re-verification email:", emailError);
+      }
+    }
 
     // Update expertise (new format: array of { subject, level })
     if (expertise !== undefined) {
@@ -68,6 +121,7 @@ exports.updateProfile = async (req, res) => {
     res.json({
       message: "Profile updated successfully",
       user: updatedUser,
+      emailChanged,
     });
   } catch (error) {
     console.error("Error updating profile:", error);

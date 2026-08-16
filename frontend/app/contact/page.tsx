@@ -64,8 +64,18 @@ export default function ContactPage() {
     setSubmitStatus(null);
 
     try {
-      // Simulation d'envoi de formulaire
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await fetch("http://localhost:5000/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || "Erreur lors de l'envoi du message"
+        );
+      }
 
       // Réinitialiser le formulaire
       setFormData({
@@ -80,10 +90,13 @@ export default function ContactPage() {
         message:
           "Votre message a bien été envoyé ! Nous vous répondrons dans les plus brefs délais.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error(error);
       setSubmitStatus({
         success: false,
-        message: "Une erreur est survenue. Veuillez réessayer plus tard.",
+        message:
+          error.message ||
+          "Une erreur est survenue. Veuillez réessayer plus tard.",
       });
     } finally {
       setIsSubmitting(false);

@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,8 +35,18 @@ const passwordRequirements = [
 ];
 
 export default function RegisterPage() {
+  const { user, isAuthenticated } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Un utilisateur déjà connecté n'a pas besoin de créer un compte :
+  // redirection vers son espace (il doit se déconnecter d'abord).
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace(user?.role === "admin" ? "/admin" : "/dashboard");
+    }
+  }, [isAuthenticated, user?.role, router]);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -45,6 +56,10 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
   });
+
+  if (isAuthenticated) {
+    return null;
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -87,7 +102,6 @@ export default function RegisterPage() {
       }
 
       setSuccess(true);
-      setTimeout(() => router.push("/connexion"), 2000);
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue lors de l'inscription");
     } finally {
@@ -111,8 +125,8 @@ export default function RegisterPage() {
               transition={{ delay: 0.2, type: "spring" }}
               className="flex justify-center mb-6"
             >
-              <div className="rounded-full bg-green-100 p-4">
-                <CheckCircle2 className="h-12 w-12 text-green-600" />
+              <div className="rounded-full bg-blue-100 p-4">
+                <Mail className="h-12 w-12 text-blue-600" />
               </div>
             </motion.div>
             <motion.h2
@@ -121,22 +135,47 @@ export default function RegisterPage() {
               transition={{ delay: 0.3 }}
               className="text-2xl font-bold mb-2"
             >
-              Inscription réussie ! 🎉
+              Vérifiez votre email 🎉
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-gray-500 mb-6"
+              className="text-gray-500 mb-4"
             >
-              Votre compte a été créé avec succès. Redirection vers la connexion...
+              Votre compte a été créé avec succès. Un email de vérification a
+              été envoyé à <strong>{formData.email}</strong>. Cliquez sur le
+              lien qu&apos;il contient pour activer votre compte et débloquer
+              toutes les fonctionnalités.
+            </motion.p>
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45 }}
+              className="text-xs text-gray-400 mb-6"
+            >
+              Vérifiez aussi votre dossier de courriers indésirables. Le lien
+              expire dans 24 heures.
             </motion.p>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
+              className="space-y-3"
             >
-              <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600">
+              <Button
+                asChild
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
+              >
+                <Link href="/resend-verification">
+                  Renvoyer l&apos;email de vérification
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="w-full border-gray-200"
+              >
                 <Link href="/connexion">Aller à la connexion</Link>
               </Button>
             </motion.div>

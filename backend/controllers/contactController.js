@@ -1,5 +1,5 @@
-const nodemailer = require("nodemailer");
 const { contactNotificationEmail } = require("../config/emailTemplates");
+const { createTransporter } = require("./authController");
 
 // @desc    Send contact form message
 // @route   POST /api/contact
@@ -12,7 +12,7 @@ const sendContactMessage = async (req, res) => {
     if (!name || !email || !message) {
       return res.status(400).json({
         success: false,
-        message: "Please provide name, email, and message",
+        message: "Veuillez fournir votre nom, votre email et un message",
       });
     }
 
@@ -21,23 +21,29 @@ const sendContactMessage = async (req, res) => {
     if (!emailRegex.test(email)) {
       return res.status(400).json({
         success: false,
-        message: "Please provide a valid email address",
+        message: "Veuillez fournir une adresse email valide",
       });
     }
 
-    // Create transporter with Gmail
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    // Destinataire : CONTACT_EMAIL > EMAIL_USER > email par défaut
+    const recipient =
+      process.env.CONTACT_EMAIL ||
+      process.env.EMAIL_USER ||
+      "malekfhima1@gmail.com";
+
+    const transporter = createTransporter();
+    if (!transporter) {
+      return res.status(503).json({
+        success: false,
+        message:
+          "Le service d'envoi d'email n'est pas configuré (EMAIL_USER / EMAIL_PASS manquants).",
+      });
+    }
 
     // Email content
     const mailOptions = {
-      from: `"EDUHUB Contact" <${process.env.EMAIL_USER}>`,
-      to: "malekfhima1@gmail.com",
+      from: process.env.EMAIL_USER,
+      to: recipient,
       replyTo: email,
       subject: subject
         ? `📩 [${subject}] Nouveau message de contact – ${name}`
@@ -48,9 +54,8 @@ const sendContactMessage = async (req, res) => {
     // Send email
     await transporter.sendMail(mailOptions);
 
-    // Log pour suivi
     console.log("=== EMAIL SENT SUCCESSFULLY ===");
-    console.log("To: malekfhima1@gmail.com");
+    console.log("To:", recipient);
     console.log("From:", email);
     console.log("Subject:", `New Contact Form Message from ${name}`);
     console.log("===============================");

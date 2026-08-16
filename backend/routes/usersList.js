@@ -134,7 +134,7 @@ router.get("/public", async (req, res) => {
     // Get mentors
     const mentors = await User.find(query)
       .select(
-        "name username email role isMonitor monitorProfile avatar bio createdAt isActive emailVerified"
+        "name username email role isMonitor monitorProfile avatar bio createdAt isActive emailVerified github linkedin"
       )
       .populate({
         path: "monitorProfile.expertise.subject",

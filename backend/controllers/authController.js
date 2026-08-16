@@ -53,6 +53,10 @@ const generateVerificationToken = () => {
   return crypto.createHash("sha256").update(verificationToken).digest("hex");
 };
 
+// Exported helpers (réutilisés par userController pour la re-vérification après changement d'email)
+exports.generateVerificationToken = generateVerificationToken;
+exports.createTransporter = createTransporter;
+
 // Register a new user
 exports.registerUser = async (req, res) => {
   try {
@@ -174,6 +178,7 @@ exports.loginUser = async (req, res) => {
       _id: user._id,
       name: user.name || user.username,
       email: user.email,
+      emailVerified: user.emailVerified,
       token: generateToken(user._id),
     });
   } catch (error) {

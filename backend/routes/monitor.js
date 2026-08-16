@@ -5,6 +5,7 @@ const Course = require("../models/Course");
 const Enrollment = require("../models/Enrollment");
 const protect = require("../middleware/authMiddleware");
 const { monitorOnly } = protect;
+const requireEmailVerification = require("../middleware/emailVerification");
 
 // @desc    Statistiques du tableau de bord mentor
 // @route   GET /api/monitor/stats
@@ -107,8 +108,8 @@ router.get("/stats", protect, monitorOnly, async (req, res) => {
 
 // @desc    Toggle monitor status for a user
 // @route   POST /api/monitor/toggle
-// @access  Private (user can toggle their own monitor status)
-router.post("/toggle", protect, async (req, res) => {
+// @access  Private (email vérifié requis)
+router.post("/toggle", protect, requireEmailVerification, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
@@ -141,8 +142,8 @@ router.post("/toggle", protect, async (req, res) => {
 
 // @desc    Update monitor profile
 // @route   PUT /api/monitor/profile
-// @access  Private (monitor only)
-router.put("/profile", protect, async (req, res) => {
+// @access  Private (monitor only, email vérifié requis)
+router.put("/profile", protect, requireEmailVerification, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 

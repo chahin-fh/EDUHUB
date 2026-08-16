@@ -7,7 +7,7 @@ const requireEmailVerification = async (req, res, next) => {
     if (req.user && !req.user.emailVerified) {
       return res.status(403).json({
         message:
-          "Email verification required. Please verify your email address to access this feature.",
+          "Vérification d'email requise. Veuillez vérifier votre adresse email pour accéder à cette fonctionnalité.",
         emailVerified: false,
       });
     }

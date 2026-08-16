@@ -12,7 +12,7 @@ const Review = require("../models/Review");
 // @access  Public
 exports.getHomeStats = async (req, res) => {
   try {
-    const [totalUsers, totalMonitors, totalCourses, totalSubjects] =
+    const [totalUsers, totalMonitors, totalCourses, totalSubjects, ratingAgg] =
       await Promise.all([
         User.countDocuments({ isActive: true }),
         User.countDocuments({ isMonitor: true, isActive: true }),
@@ -20,7 +20,21 @@ exports.getHomeStats = async (req, res) => {
           status: { $in: ["active", "published"] },
         }),
         Subject.countDocuments(),
+        User.aggregate([
+          {
+            $match: {
+              isMonitor: true,
+              isActive: true,
+              "monitorProfile.ratingsCount": { $gt: 0 },
+            },
+          },
+          { $group: { _id: null, avg: { $avg: "$monitorProfile.rating" } } },
+        ]),
       ]);
+
+    const averageRating = ratingAgg.length
+      ? Math.round(ratingAgg[0].avg * 10) / 10
+      : null;
 
     res.status(200).json({
       success: true,
@@ -29,6 +43,7 @@ exports.getHomeStats = async (req, res) => {
         monitors: totalMonitors,
         courses: totalCourses,
         subjects: totalSubjects,
+        averageRating,
       },
     });
   } catch (error) {

@@ -7,7 +7,15 @@ import Link from "next/link";
 import img from "assets/images/Student learning with mentor.jpg";
 import { StaggerContainer, StaggerItem } from "@/components/animated-section";
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  stats?: {
+    users: number;
+    monitors: number;
+    averageRating: number | null;
+  } | null;
+}
+
+export default function HeroSection({ stats }: HeroSectionProps) {
   const contentRef = useRef(null);
   const isInView = useInView(contentRef, { once: true, margin: "-100px" });
 
@@ -133,19 +141,34 @@ export default function HeroSection() {
               <StaggerContainer className="flex gap-8" staggerDelay={0.2}>
                 <StaggerItem>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">500+</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stats
+                        ? stats.users.toLocaleString("fr-FR")
+                        : "—"}
+                    </p>
                     <p className="text-sm text-gray-500">Étudiants</p>
                   </div>
                 </StaggerItem>
                 <StaggerItem>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">50+</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stats
+                        ? stats.monitors.toLocaleString("fr-FR")
+                        : "—"}
+                    </p>
                     <p className="text-sm text-gray-500">Mentors</p>
                   </div>
                 </StaggerItem>
                 <StaggerItem>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">4.8</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stats && stats.averageRating !== null && stats.averageRating > 0
+                        ? stats.averageRating.toLocaleString("fr-FR", {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          })
+                        : "—"}
+                    </p>
                     <p className="text-sm text-gray-500">Note moyenne</p>
                   </div>
                 </StaggerItem>

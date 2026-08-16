@@ -114,10 +114,11 @@ interface HomeStats {
   monitors: number;
   courses: number;
   subjects: number;
+  averageRating: number | null;
 }
 
 const statItems: {
-  key: keyof HomeStats;
+  key: "users" | "monitors" | "courses" | "subjects";
   label: string;
   icon: any;
   suffix?: string;
@@ -166,7 +167,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       <main className="flex-1">
-        <HeroSection />
+        <HeroSection stats={homeStats} />
 
         {/* Features Section */}
         <AnimatedSection className="py-20 bg-gradient-to-b from-white to-gray-50">

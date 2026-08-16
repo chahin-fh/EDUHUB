@@ -34,8 +34,23 @@ router.post("/resend-verification", resendVerificationEmail);
 // @desc    Get user data
 // @route   GET /api/auth/me
 // @access  Private
-router.get("/me", protect, (req, res) => {
-  res.status(200).json(req.user);
+router.get("/me", protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select("-password")
+      .populate({
+        path: "monitorProfile.expertise.subject",
+        select: "name slug",
+      })
+      .populate({
+        path: "learningGoals.subject",
+        select: "name slug",
+      });
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Get me error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 });
 
 router.post(
