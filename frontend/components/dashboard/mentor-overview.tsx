@@ -24,7 +24,7 @@ import { motion } from "framer-motion";
 import { AnimatedSection } from "@/components/animated-section";
 import { timeAgo } from "@/lib/utils";
 
-const API_BASE ="https://eduhub-for-production.onrender.com";
+import { API_BASE } from "@/lib/api-config";
 
 interface MentorCourse {
   _id: string;

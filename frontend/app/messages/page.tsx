@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -103,7 +105,7 @@ export default function MessagesPage() {
   const openConversationWithUser = async (userId: string) => {
     try {
       const token = localStorage.getItem("authToken");
-      const res = await fetch("http://localhost:5000/api/chat/conversations", {
+      const res = await fetch("${API_BASE}/api/chat/conversations", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -187,7 +189,7 @@ export default function MessagesPage() {
   const fetchConversations = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const res = await fetch("http://localhost:5000/api/chat/conversations", {
+      const res = await fetch("${API_BASE}/api/chat/conversations", {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -212,7 +214,7 @@ export default function MessagesPage() {
     try {
       const token = localStorage.getItem("authToken");
       const res = await fetch(
-        `http://localhost:5000/api/chat/conversations/${conversationId}/messages`,
+        `${API_BASE}/api/chat/conversations/${conversationId}/messages`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -237,7 +239,7 @@ export default function MessagesPage() {
     try {
       const token = localStorage.getItem("authToken");
       const res = await fetch(
-        `http://localhost:5000/api/chat/conversations/${selectedConversation._id}/messages`,
+        `${API_BASE}/api/chat/conversations/${selectedConversation._id}/messages`,
         {
           method: "POST",
           headers: {
@@ -277,7 +279,7 @@ export default function MessagesPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("http://localhost:5000/api/chat/upload", {
+      const res = await fetch("${API_BASE}/api/chat/upload", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -307,7 +309,7 @@ export default function MessagesPage() {
     try {
       const token = localStorage.getItem("authToken");
       const res = await fetch(
-        `http://localhost:5000/api/chat/conversations/${selectedConversation._id}/messages/${messageId}/reactions`,
+        `${API_BASE}/api/chat/conversations/${selectedConversation._id}/messages/${messageId}/reactions`,
         {
           method: "POST",
           headers: {
@@ -335,7 +337,7 @@ export default function MessagesPage() {
     try {
       const token = localStorage.getItem("authToken");
       const res = await fetch(
-        `http://localhost:5000/api/chat/conversations/${selectedConversation._id}/messages/${messageId}`,
+        `${API_BASE}/api/chat/conversations/${selectedConversation._id}/messages/${messageId}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -582,7 +584,7 @@ export default function MessagesPage() {
                                   {message.attachments.map((att, idx) => {
                                     const fullUrl = att.url.startsWith("http")
                                       ? att.url
-                                      : `http://localhost:5000${att.url}`;
+                                      : `${API_BASE}${att.url}`;
                                     const isImage = att.type.startsWith("image/");
                                     return isImage ? (
                                       <a

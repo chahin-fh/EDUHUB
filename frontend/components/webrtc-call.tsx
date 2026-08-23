@@ -9,6 +9,7 @@ import {
   forwardRef,
   useImperativeHandle,
 } from "react";
+import { API_BASE } from "@/lib/api-config";
 import { io, Socket } from "socket.io-client";
 import { Button } from "@/components/ui/button";
 import {
@@ -107,7 +108,7 @@ export const WebRTCCall = forwardRef<WebRTCCallHandle, WebRTCCallProps>(
 
   // Connect to Socket.io
   useEffect(() => {
-    const newSocket = io("http://localhost:5000", {
+    const newSocket = io("${API_BASE}", {
       transports: ["websocket", "polling"],
     });
 

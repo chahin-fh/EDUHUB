@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/src/components/ui/button";
@@ -43,7 +45,7 @@ export default function VerifyEmailPage() {
     const verifyEmail = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/auth/verify-email/${token}`,
+          `${API_BASE}/api/auth/verify-email/${token}`,
           {
             method: "GET",
             headers: {

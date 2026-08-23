@@ -28,7 +28,7 @@ import { AnimatedSection, StaggerContainer, StaggerItem, AnimatedCard, PageTrans
 import { toast } from "sonner";
 import { io } from "socket.io-client";
 
-const API_BASE ="https://eduhub-for-production.onrender.com";
+import { API_BASE } from "@/lib/api-config";
 
 interface MatchRequestData {
   _id: string;
@@ -175,7 +175,7 @@ export default function DemandesPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem("authToken");
-      const res = await fetch("http://localhost:5000/api/matching/requests", {
+      const res = await fetch("${API_BASE}/api/matching/requests", {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
       if (res.status === 401) { router.push("/connexion"); return; }
@@ -227,7 +227,7 @@ export default function DemandesPage() {
     setProcessingId(requestId);
     try {
       const token = localStorage.getItem("authToken");
-      const res = await fetch(`http://localhost:5000/api/matching/request/${requestId}`, {
+      const res = await fetch(`${API_BASE}/api/matching/request/${requestId}`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ status }),

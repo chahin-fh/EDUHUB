@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState } from "react";
 import { MailWarning, RefreshCw, CheckCircle2, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -26,7 +28,7 @@ export default function EmailVerificationBanner({
     setSent(false);
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/resend-verification",
+        "${API_BASE}/api/auth/resend-verification",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

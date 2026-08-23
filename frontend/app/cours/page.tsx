@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -151,7 +153,7 @@ export default function CoursePage() {
     const fetchCourses = async () => {
       try {
         setLoading(true);
-        const response = await fetch("http://localhost:5000/api/courses");
+        const response = await fetch("${API_BASE}/api/courses");
 
         if (!response.ok) {
           throw new Error("Failed to fetch courses");

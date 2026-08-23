@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -136,7 +138,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/subjects");
+        const res = await fetch("${API_BASE}/api/subjects");
         if (res.ok) {
           const data = await res.json();
           setAvailableSubjects(data);
@@ -236,7 +238,7 @@ export default function ProfilePage() {
         })),
       };
 
-      const response = await fetch("http://localhost:5000/api/users/profile", {
+      const response = await fetch("${API_BASE}/api/users/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -287,7 +289,7 @@ export default function ProfilePage() {
       formData.append("avatar", file);
 
       const response = await fetch(
-        "http://localhost:5000/api/auth/upload-avatar",
+        "${API_BASE}/api/auth/upload-avatar",
         {
           method: "POST",
           headers: {

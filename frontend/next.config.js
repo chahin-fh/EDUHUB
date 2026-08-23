@@ -9,13 +9,14 @@ const nextConfig = {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
   },
-    async rewrites() {
+  async rewrites() {
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000';
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:5000/api/:path*',
+        destination: `${apiBase}/api/:path*`,
       },
-    ]
+    ];
   },
   async headers() {
     return [

@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -180,12 +182,12 @@ export default function MentorsPage() {
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      let response = await fetch(`http://localhost:5000/api/usersList?${params}`, { headers });
+      let response = await fetch(`${API_BASE}/api/usersList?${params}`, { headers });
 
       // La route privée /api/usersList est désormais admin-only (403 pour un
       // étudiant/moniteur) : on bascule sur l'endpoint public /public.
       if (response.status === 401 || response.status === 403) {
-        response = await fetch(`http://localhost:5000/api/usersList/public?${params}`, { headers: { "Content-Type": "application/json" } });
+        response = await fetch(`${API_BASE}/api/usersList/public?${params}`, { headers: { "Content-Type": "application/json" } });
       }
 
       const data = await response.json();

@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
@@ -145,7 +147,7 @@ export default function UserDetailPage() {
       };
 
       const response = await fetch(
-        `http://localhost:5000/api/usersList/${userId}`,
+        `${API_BASE}/api/usersList/${userId}`,
         { headers }
       );
 
@@ -177,7 +179,7 @@ export default function UserDetailPage() {
   const fetchReviews = useCallback(async () => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/reviews/user/${userId}`
+        `${API_BASE}/api/reviews/user/${userId}`
       );
       const data = await res.json();
       if (data.success) {
@@ -214,7 +216,7 @@ export default function UserDetailPage() {
           ? firstExpertise.subject._id
           : firstExpertise.subject;
 
-      const res = await fetch("http://localhost:5000/api/matching/request", {
+      const res = await fetch("${API_BASE}/api/matching/request", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -257,7 +259,7 @@ export default function UserDetailPage() {
       const subjectId =
         userData?.monitorProfile?.expertise?.[0]?.subject?._id;
 
-      const res = await fetch("http://localhost:5000/api/reviews", {
+      const res = await fetch("${API_BASE}/api/reviews", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

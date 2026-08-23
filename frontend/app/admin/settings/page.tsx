@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +24,7 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/subjects");
+        const res = await fetch("${API_BASE}/api/subjects");
         if (!res.ok) throw new Error("Failed to fetch subjects");
         const data = await res.json();
         setSubjects(data);
@@ -39,7 +41,7 @@ export default function AdminSettingsPage() {
     if (!newSubject.trim()) return;
     setAddingNew(true);
     try {
-      const res = await fetch("http://localhost:5000/api/subjects", {
+      const res = await fetch("${API_BASE}/api/subjects", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -61,7 +63,7 @@ export default function AdminSettingsPage() {
 
   const handleDeleteSubject = async (id: string, name: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/subjects/${id}`, {
+      const res = await fetch(`${API_BASE}/api/subjects/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
@@ -81,7 +83,7 @@ export default function AdminSettingsPage() {
   const handleUpdateSubject = async () => {
     if (!editingSubject || !editingText.trim()) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/subjects/${editingSubject._id}`, {
+      const res = await fetch(`${API_BASE}/api/subjects/${editingSubject._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

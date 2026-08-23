@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 // =====================================================================
 // ⚠️ GESTIONNAIRE DE PAIEMENTS (ADMIN) — CODE COMMENTÉ
 // ---------------------------------------------------------------------
@@ -20,7 +22,6 @@
 // import { toast } from "sonner";
 // import { timeAgo } from "@/lib/utils";
 // 
-// const API_BASE ="https://eduhub-for-production.onrender.com";
 // 
 // interface PaymentItem {
 //   _id: string;

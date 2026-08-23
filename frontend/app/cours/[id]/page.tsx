@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 // import { useSearchParams } from "next/navigation"; // ⚠️ Paiement commenté
@@ -179,7 +181,7 @@ export default function CourseDetailPage() {
       try {
         setLoading(true);
         const response = await fetch(
-          `http://localhost:5000/api/courses/${courseId}`
+          `${API_BASE}/api/courses/${courseId}`
         );
 
         if (!response.ok) {
@@ -216,7 +218,7 @@ export default function CourseDetailPage() {
       try {
         const token = localStorage.getItem("authToken");
         const res = await fetch(
-          `http://localhost:5000/api/courses/my/enrolled`,
+          `${API_BASE}/api/courses/my/enrolled`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -254,7 +256,7 @@ export default function CourseDetailPage() {
       try {
         setReviewLoading(true);
         const res = await fetch(
-          `http://localhost:5000/api/course-reviews/${courseId}`
+          `${API_BASE}/api/course-reviews/${courseId}`
         );
         if (res.ok) {
           const data = await res.json();
@@ -277,7 +279,7 @@ export default function CourseDetailPage() {
       try {
         const token = localStorage.getItem("authToken");
         const res = await fetch(
-          `http://localhost:5000/api/course-reviews/mine/${courseId}`,
+          `${API_BASE}/api/course-reviews/mine/${courseId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (res.ok) {
@@ -348,7 +350,7 @@ export default function CourseDetailPage() {
   //     setIsEnrolling(true);
   //     const token = localStorage.getItem("authToken");
   //     const res = await fetch(
-  //       "http://localhost:5000/api/payment/create-checkout-session",
+  //       "${API_BASE}/api/payment/create-checkout-session",
   //       {
   //         method: "POST",
   //         headers: {
@@ -384,7 +386,7 @@ export default function CourseDetailPage() {
       setIsEnrolling(true);
       const token = localStorage.getItem("authToken");
       const res = await fetch(
-        `http://localhost:5000/api/courses/${courseId}/enroll`,
+        `${API_BASE}/api/courses/${courseId}/enroll`,
         {
           method: "POST",
           headers: {
@@ -422,7 +424,7 @@ export default function CourseDetailPage() {
     try {
       const token = localStorage.getItem("authToken");
       const res = await fetch(
-        `http://localhost:5000/api/courses/${courseId}/progress`,
+        `${API_BASE}/api/courses/${courseId}/progress`,
         {
           method: "PATCH",
           headers: {
@@ -486,7 +488,7 @@ export default function CourseDetailPage() {
   const refreshReviews = async () => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/course-reviews/${courseId}`
+        `${API_BASE}/api/course-reviews/${courseId}`
       );
       if (res.ok) {
         const data = await res.json();
@@ -513,8 +515,8 @@ export default function CourseDetailPage() {
       const isUpdate = !!myReview;
       const res = await fetch(
         isUpdate
-          ? `http://localhost:5000/api/course-reviews/${myReview._id}`
-          : "http://localhost:5000/api/course-reviews",
+          ? `${API_BASE}/api/course-reviews/${myReview._id}`
+          : "${API_BASE}/api/course-reviews",
         {
           method: isUpdate ? "PATCH" : "POST",
           headers: {
@@ -552,7 +554,7 @@ export default function CourseDetailPage() {
     try {
       const token = localStorage.getItem("authToken");
       const res = await fetch(
-        `http://localhost:5000/api/course-reviews/${myReview._id}`,
+        `${API_BASE}/api/course-reviews/${myReview._id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -609,7 +611,7 @@ export default function CourseDetailPage() {
       setDownloading(true);
       const token = localStorage.getItem("authToken");
       const res = await fetch(
-        `http://localhost:5000/api/courses/${courseId}/download`,
+        `${API_BASE}/api/courses/${courseId}/download`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!res.ok) {

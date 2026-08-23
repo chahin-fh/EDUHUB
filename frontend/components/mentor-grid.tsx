@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useCallback, useEffect, useState } from "react";
 import MentorCard from "./mentor-card";
 import { Users as UsersIcon } from "lucide-react";
@@ -36,7 +38,7 @@ export default function UserGrid({ subject, search }: UserGridProps) {
     try {
       setIsLoading(true);
 
-      const res = await fetch("http://localhost:5000/api/usersList/public");
+      const res = await fetch("${API_BASE}/api/usersList/public");
       const data = await res.json();
 
       if (data.success && Array.isArray(data.users)) {

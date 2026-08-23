@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,7 +30,7 @@ export default function SubjectsDisplay({
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/subjects");
+        const response = await fetch("${API_BASE}/api/subjects");
         if (response.ok) {
           const data = await response.json();
           setSubjects(data);

@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +59,7 @@ export default function MentorsDisplay({
   useEffect(() => {
     const fetchMentors = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/mentors");
+        const response = await fetch("${API_BASE}/api/mentors");
         if (response.ok) {
           const data = await response.json();
           setMentors(Array.isArray(data) ? data : []);

@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/src/components/ui/button";
@@ -42,7 +44,7 @@ export default function ResendVerificationPage() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/resend-verification",
+        "${API_BASE}/api/auth/resend-verification",
         {
           method: "POST",
           headers: {

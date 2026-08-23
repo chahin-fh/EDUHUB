@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
@@ -137,7 +139,7 @@ export default function Home() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/stats/home");
+        const res = await fetch("${API_BASE}/api/stats/home");
         if (res.ok) {
           const data = await res.json();
           if (data.success) setHomeStats(data.stats);

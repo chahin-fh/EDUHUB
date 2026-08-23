@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -154,7 +156,7 @@ export default function AdminDashboard() {
       const fetchAdminData = async () => {
         try {
           const token = localStorage.getItem("authToken");
-          const statsRes = await fetch("http://localhost:5000/api/stats/admin", {
+          const statsRes = await fetch("${API_BASE}/api/stats/admin", {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (statsRes.ok) {

@@ -9,7 +9,7 @@ import { Star, Loader2, Search, Trash2, AlertCircle, RefreshCw, MessageSquare } 
 import { toast } from "sonner";
 import { timeAgo } from "@/lib/utils";
 
-const API_BASE ="https://eduhub-for-production.onrender.com";
+import { API_BASE } from "@/lib/api-config";
 
 interface ReviewItem {
   _id: string;

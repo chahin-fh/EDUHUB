@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -130,7 +132,7 @@ export default function UsersPage() {
 
       // Pas de boucle de retry sur 429 : chaque nouvelle requête compte aussi dans le
       // rate-limiter et aggrave le problème. On affiche simplement le message d'erreur.
-      const response = await fetch(`http://localhost:5000/api/usersList?${params}`, {
+      const response = await fetch(`${API_BASE}/api/usersList?${params}`, {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
@@ -173,7 +175,7 @@ export default function UsersPage() {
       const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
-      const response = await fetch("http://localhost:5000/api/usersList/stats", { headers });
+      const response = await fetch("${API_BASE}/api/usersList/stats", { headers });
       if (response.ok) {
         const data = await response.json();
         if (data.success) setStats(data.stats);

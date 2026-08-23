@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,7 +135,7 @@ export default function EstablishmentManager() {
       if (searchTerm) params.append("search", searchTerm);
       if (filterType !== "all") params.append("type", filterType);
 
-      const response = await fetch(`http://localhost:5000/api/establishments?${params}`, {
+      const response = await fetch(`${API_BASE}/api/establishments?${params}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
 
@@ -157,8 +159,8 @@ export default function EstablishmentManager() {
     setSaving(true);
     try {
       const url = editingEstablishment
-        ? `http://localhost:5000/api/establishments/${editingEstablishment._id}`
-        : "http://localhost:5000/api/establishments";
+        ? `${API_BASE}/api/establishments/${editingEstablishment._id}`
+        : "${API_BASE}/api/establishments";
 
       const method = editingEstablishment ? "PUT" : "POST";
 
@@ -214,7 +216,7 @@ export default function EstablishmentManager() {
   const confirmDelete = async () => {
     if (!deleteTargetId) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/establishments/${deleteTargetId}`, {
+      const response = await fetch(`${API_BASE}/api/establishments/${deleteTargetId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });

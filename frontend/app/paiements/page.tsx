@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 // =====================================================================
 // ⚠️ PAGE DES PAIEMENTS — CODE COMMENTÉ
 // ---------------------------------------------------------------------
@@ -74,7 +76,7 @@
 //     try {
 //       setFetchLoading(true);
 //       const token = localStorage.getItem("authToken");
-//       const res = await fetch("http://localhost:5000/api/payment/history", {
+//       const res = await fetch("${API_BASE}/api/payment/history", {
 //         headers: { Authorization: `Bearer ${token}` },
 //       });
 //       if (!res.ok) throw new Error("Erreur lors du chargement");

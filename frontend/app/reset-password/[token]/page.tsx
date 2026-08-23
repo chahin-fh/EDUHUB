@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/src/components/ui/button";
@@ -75,7 +77,7 @@ export default function ResetPasswordPage() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/auth/reset-password",
+        "${API_BASE}/api/auth/reset-password",
         {
           method: "POST",
           headers: {

@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -257,7 +259,7 @@ export default function UploadCoursePage() {
       formData.append("language", language);
       formData.append("document", documentFile);
 
-      const response = await fetch("http://localhost:5000/api/courses/upload", {
+      const response = await fetch("${API_BASE}/api/courses/upload", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

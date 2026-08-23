@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE } from "@/lib/api-config";
+
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,7 +122,7 @@ export default function SubjectManager() {
   const fetchSubjects = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:5000/api/subjects", {
+      const response = await fetch("${API_BASE}/api/subjects", {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
 
@@ -155,7 +157,7 @@ export default function SubjectManager() {
         let successCount = 0;
         for (const name of names) {
           try {
-            const response = await fetch("http://localhost:5000/api/subjects", {
+            const response = await fetch("${API_BASE}/api/subjects", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -177,8 +179,8 @@ export default function SubjectManager() {
       }
 
       const url = editingSubject
-        ? `http://localhost:5000/api/subjects/${editingSubject._id}`
-        : "http://localhost:5000/api/subjects";
+        ? `${API_BASE}/api/subjects/${editingSubject._id}`
+        : "${API_BASE}/api/subjects";
 
       const method = editingSubject ? "PUT" : "POST";
 
@@ -232,7 +234,7 @@ export default function SubjectManager() {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/subjects/${deleteTarget.id}`, {
+      const response = await fetch(`${API_BASE}/api/subjects/${deleteTarget.id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
