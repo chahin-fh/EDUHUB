@@ -20,7 +20,7 @@
 // import { toast } from "sonner";
 // import { timeAgo } from "@/lib/utils";
 // 
-// const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
+// const API_BASE =  https://eduhub-for-production.onrender.com
 // 
 // interface PaymentItem {
 //   _id: string;
