@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -244,6 +245,12 @@ export default function CoursePage() {
 
                 {/* Stats chips */}
                 <div className="flex flex-wrap justify-center gap-3 mt-8">
+                  <Link href="/cours/upload">
+                    <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-semibold text-sm shadow-lg shadow-green-500/25 transition-all cursor-pointer">
+                      <Plus className="h-4 w-4" />
+                      Ajouter un cours
+                    </span>
+                  </Link>
                   <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl">
                     <GraduationCap className="h-4 w-4 text-amber-300" />
                     <span className="text-sm font-medium">
