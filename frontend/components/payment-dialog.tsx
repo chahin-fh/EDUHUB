@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const API_BASE =  https://eduhub-for-production.onrender.com
+const API_BASE ="https://eduhub-for-production.onrender.com";
 
 interface PaidCourse {
   _id: string;

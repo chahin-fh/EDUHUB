@@ -84,7 +84,7 @@ type ConversationType = {
   updatedAt?: string;
 };
 
-const API_BASE =  https://eduhub-for-production.onrender.com
+const API_BASE ="https://eduhub-for-production.onrender.com";
 
 function getUserDisplayName(u: UserLite) {
   return u.username || u.name || u.email || "Utilisateur";

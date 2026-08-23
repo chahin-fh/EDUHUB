@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
-const API_BASE =  https://eduhub-for-production.onrender.com
+const API_BASE ="https://eduhub-for-production.onrender.com";
 
 // Détermine si l'utilisateur peut contacter des moniteurs :
 // - les admins sont toujours autorisés

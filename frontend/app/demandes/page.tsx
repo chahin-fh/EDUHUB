@@ -28,7 +28,7 @@ import { AnimatedSection, StaggerContainer, StaggerItem, AnimatedCard, PageTrans
 import { toast } from "sonner";
 import { io } from "socket.io-client";
 
-const API_BASE =  https://eduhub-for-production.onrender.com
+const API_BASE ="https://eduhub-for-production.onrender.com";
 
 interface MatchRequestData {
   _id: string;
