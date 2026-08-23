@@ -80,7 +80,7 @@ export default function ApprendrePage() {
   const fetchSubjects = async () => {
     try {
       setLoading(true);
-      const res = await fetch("${API_BASE}/api/matching/subjects");
+      const res = await fetch(`${API_BASE}/api/matching/subjects`);
       const data = await res.json();
       if (data.success) setSubjects(data.subjects);
     } catch (err) {
@@ -122,7 +122,7 @@ export default function ApprendrePage() {
     if (!isAuthenticated) { router.push("/connexion"); return; }
     try {
       const token = localStorage.getItem("authToken");
-      const res = await fetch("${API_BASE}/api/matching/request", {
+      const res = await fetch(`${API_BASE}/api/matching/request`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ mentorId, subjectId: selectedSubject, message: `Bonjour, j'aimerais apprendre ${selectedSubjectName} avec vous !` }),

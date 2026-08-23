@@ -44,7 +44,7 @@ export default function ResendVerificationPage() {
 
     try {
       const response = await fetch(
-        "${API_BASE}/api/auth/resend-verification",
+        `${API_BASE}/api/auth/resend-verification`,
         {
           method: "POST",
           headers: {

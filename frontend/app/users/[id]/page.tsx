@@ -216,7 +216,7 @@ export default function UserDetailPage() {
           ? firstExpertise.subject._id
           : firstExpertise.subject;
 
-      const res = await fetch("${API_BASE}/api/matching/request", {
+      const res = await fetch(`${API_BASE}/api/matching/request`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -259,7 +259,7 @@ export default function UserDetailPage() {
       const subjectId =
         userData?.monitorProfile?.expertise?.[0]?.subject?._id;
 
-      const res = await fetch("${API_BASE}/api/reviews", {
+      const res = await fetch(`${API_BASE}/api/reviews`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

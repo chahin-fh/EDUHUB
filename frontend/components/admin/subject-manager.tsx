@@ -122,7 +122,7 @@ export default function SubjectManager() {
   const fetchSubjects = async () => {
     try {
       setLoading(true);
-      const response = await fetch("${API_BASE}/api/subjects", {
+      const response = await fetch(`${API_BASE}/api/subjects`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("authToken")}` },
       });
 
@@ -157,7 +157,7 @@ export default function SubjectManager() {
         let successCount = 0;
         for (const name of names) {
           try {
-            const response = await fetch("${API_BASE}/api/subjects", {
+            const response = await fetch(`${API_BASE}/api/subjects`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -180,7 +180,7 @@ export default function SubjectManager() {
 
       const url = editingSubject
         ? `${API_BASE}/api/subjects/${editingSubject._id}`
-        : "${API_BASE}/api/subjects";
+        : `${API_BASE}/api/subjects`;
 
       const method = editingSubject ? "PUT" : "POST";
 

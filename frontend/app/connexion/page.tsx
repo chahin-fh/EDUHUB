@@ -58,7 +58,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch("${API_BASE}/api/auth/connexion", {
+      const response = await fetch(`${API_BASE}/api/auth/connexion`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -71,7 +71,7 @@ export default function LoginPage() {
         throw new Error(data?.message || response.statusText || "Email ou mot de passe incorrect");
       }
 
-      const userRes = await fetch("${API_BASE}/api/auth/me", {
+      const userRes = await fetch(`${API_BASE}/api/auth/me`, {
         headers: { Authorization: `Bearer ${data.token}` },
       });
 

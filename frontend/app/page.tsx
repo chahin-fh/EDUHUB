@@ -139,7 +139,7 @@ export default function Home() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch("${API_BASE}/api/stats/home");
+        const res = await fetch(`${API_BASE}/api/stats/home`);
         if (res.ok) {
           const data = await res.json();
           if (data.success) setHomeStats(data.stats);

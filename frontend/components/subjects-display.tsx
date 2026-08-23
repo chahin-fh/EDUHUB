@@ -30,7 +30,7 @@ export default function SubjectsDisplay({
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await fetch("${API_BASE}/api/subjects");
+        const response = await fetch(`${API_BASE}/api/subjects`);
         if (response.ok) {
           const data = await response.json();
           setSubjects(data);

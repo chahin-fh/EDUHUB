@@ -175,7 +175,7 @@ export default function DemandesPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem("authToken");
-      const res = await fetch("${API_BASE}/api/matching/requests", {
+      const res = await fetch(`${API_BASE}/api/matching/requests`, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
       if (res.status === 401) { router.push("/connexion"); return; }

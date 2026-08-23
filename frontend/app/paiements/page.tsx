@@ -76,7 +76,7 @@ import { API_BASE } from "@/lib/api-config";
 //     try {
 //       setFetchLoading(true);
 //       const token = localStorage.getItem("authToken");
-//       const res = await fetch("${API_BASE}/api/payment/history", {
+//       const res = await fetch(`${API_BASE}/api/payment/history`, {
 //         headers: { Authorization: `Bearer ${token}` },
 //       });
 //       if (!res.ok) throw new Error("Erreur lors du chargement");

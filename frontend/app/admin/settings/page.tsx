@@ -24,7 +24,7 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const res = await fetch("${API_BASE}/api/subjects");
+        const res = await fetch(`${API_BASE}/api/subjects`);
         if (!res.ok) throw new Error("Failed to fetch subjects");
         const data = await res.json();
         setSubjects(data);
@@ -41,7 +41,7 @@ export default function AdminSettingsPage() {
     if (!newSubject.trim()) return;
     setAddingNew(true);
     try {
-      const res = await fetch("${API_BASE}/api/subjects", {
+      const res = await fetch(`${API_BASE}/api/subjects`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -143,7 +143,7 @@ export default function DashboardPage() {
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem("authToken");
-        const res = await fetch("${API_BASE}/api/stats/dashboard", {
+        const res = await fetch(`${API_BASE}/api/stats/dashboard`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {

@@ -350,7 +350,7 @@ export default function CourseDetailPage() {
   //     setIsEnrolling(true);
   //     const token = localStorage.getItem("authToken");
   //     const res = await fetch(
-  //       "${API_BASE}/api/payment/create-checkout-session",
+  //       `${API_BASE}/api/payment/create-checkout-session`,
   //       {
   //         method: "POST",
   //         headers: {
@@ -516,7 +516,7 @@ export default function CourseDetailPage() {
       const res = await fetch(
         isUpdate
           ? `${API_BASE}/api/course-reviews/${myReview._id}`
-          : "${API_BASE}/api/course-reviews",
+          : `${API_BASE}/api/course-reviews`,
         {
           method: isUpdate ? "PATCH" : "POST",
           headers: {

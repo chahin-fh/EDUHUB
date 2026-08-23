@@ -105,7 +105,7 @@ export default function MessagesPage() {
   const openConversationWithUser = async (userId: string) => {
     try {
       const token = localStorage.getItem("authToken");
-      const res = await fetch("${API_BASE}/api/chat/conversations", {
+      const res = await fetch(`${API_BASE}/api/chat/conversations`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -189,7 +189,7 @@ export default function MessagesPage() {
   const fetchConversations = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const res = await fetch("${API_BASE}/api/chat/conversations", {
+      const res = await fetch(`${API_BASE}/api/chat/conversations`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -279,7 +279,7 @@ export default function MessagesPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("${API_BASE}/api/chat/upload", {
+      const res = await fetch(`${API_BASE}/api/chat/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,

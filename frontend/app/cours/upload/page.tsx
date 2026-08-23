@@ -259,7 +259,7 @@ export default function UploadCoursePage() {
       formData.append("language", language);
       formData.append("document", documentFile);
 
-      const response = await fetch("${API_BASE}/api/courses/upload", {
+      const response = await fetch(`${API_BASE}/api/courses/upload`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

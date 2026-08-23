@@ -160,7 +160,7 @@ export default function EstablishmentManager() {
     try {
       const url = editingEstablishment
         ? `${API_BASE}/api/establishments/${editingEstablishment._id}`
-        : "${API_BASE}/api/establishments";
+        : `${API_BASE}/api/establishments`;
 
       const method = editingEstablishment ? "PUT" : "POST";
 

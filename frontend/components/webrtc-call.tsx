@@ -108,7 +108,7 @@ export const WebRTCCall = forwardRef<WebRTCCallHandle, WebRTCCallProps>(
 
   // Connect to Socket.io
   useEffect(() => {
-    const newSocket = io("${API_BASE}", {
+    const newSocket = io(`${API_BASE}`, {
       transports: ["websocket", "polling"],
     });
 

@@ -59,7 +59,7 @@ export default function MentorsDisplay({
   useEffect(() => {
     const fetchMentors = async () => {
       try {
-        const response = await fetch("${API_BASE}/api/mentors");
+        const response = await fetch(`${API_BASE}/api/mentors`);
         if (response.ok) {
           const data = await response.json();
           setMentors(Array.isArray(data) ? data : []);

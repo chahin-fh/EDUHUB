@@ -38,7 +38,7 @@ export default function UserGrid({ subject, search }: UserGridProps) {
     try {
       setIsLoading(true);
 
-      const res = await fetch("${API_BASE}/api/usersList/public");
+      const res = await fetch(`${API_BASE}/api/usersList/public`);
       const data = await res.json();
 
       if (data.success && Array.isArray(data.users)) {

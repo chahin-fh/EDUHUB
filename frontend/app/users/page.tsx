@@ -175,7 +175,7 @@ export default function UsersPage() {
       const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
-      const response = await fetch("${API_BASE}/api/usersList/stats", { headers });
+      const response = await fetch(`${API_BASE}/api/usersList/stats`, { headers });
       if (response.ok) {
         const data = await response.json();
         if (data.success) setStats(data.stats);

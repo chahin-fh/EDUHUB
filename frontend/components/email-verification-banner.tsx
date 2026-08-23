@@ -28,7 +28,7 @@ export default function EmailVerificationBanner({
     setSent(false);
     try {
       const response = await fetch(
-        "${API_BASE}/api/auth/resend-verification",
+        `${API_BASE}/api/auth/resend-verification`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
